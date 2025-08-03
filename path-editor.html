@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campus Path Editor & Navigator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+body { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #fff; min-height: 100vh; overflow: hidden; }
+.container { display: flex; flex-direction: column; height: 100vh; padding: 15px; }
+header { text-align: center; padding: 15px 0; margin-bottom: 15px; }
+h1 { font-size: 2.5rem; margin-bottom: 10px; background: linear-gradient(90deg, #00dbde, #fc00ff); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+.subtitle { font-size: 1.2rem; opacity: 0.8; max-width: 600px; margin: 0 auto; }
+.content { display: flex; flex: 1; gap: 15px; }
+.viewer-container { flex: 1; position: relative; overflow: hidden; }
+#canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.controls { width: 320px; background: rgba(25, 25, 45, 0.9); border-radius: 10px; padding: 20px; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); overflow-y: auto; max-height: 100%; }
+.control-group { margin-bottom: 20px; }
+h2 { font-size: 1.3rem; margin-bottom: 15px; color: #00dbde; position: relative; padding-bottom: 8px; }
+h2::after { content: ''; position: absolute; bottom: 0; left: 0; width: 50px; height: 3px; background: linear-gradient(90deg, #00dbde, #fc00ff); border-radius: 3px; }
+.dropdown { position: relative; width: 100%; margin-bottom: 10px; }
+.dropdown-header { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(50, 50, 80, 0.6); border-radius: 8px; cursor: pointer; transition: all 0.3s ease; border: 1px solid rgba(255, 255, 255, 0.1); }
+.dropdown-header:hover { background: rgba(70, 70, 100, 0.8); }
+.dropdown-options { position: absolute; top: 100%; left: 0; right: 0; background: rgba(40, 40, 65, 0.95); border-radius: 10px; margin-top: 5px; overflow: hidden; max-height: 0; opacity: 0; transition: all 0.4s ease; z-index: 10; border: 1px solid rgba(255, 255, 255, 0.1); }
+.dropdown.open .dropdown-options { max-height: 300px; opacity: 1; }
+.dropdown-option { padding: 12px; cursor: pointer; transition: background 0.2s ease; }
+.dropdown-option:hover { background: rgba(90, 90, 140, 0.8); }
+.dropdown-option.selected { background: linear-gradient(90deg, #00dbde, #fc00ff); color: white; }
+.btn { padding: 10px; background: rgba(50, 50, 80, 0.6); border: none; border-radius: 6px; color: white; cursor: pointer; transition: all 0.3s; font-size: 0.9rem; margin: 5px; }
+.btn:hover { background: rgba(70, 70, 100, 0.8); }
+.btn.primary { background: linear-gradient(90deg, #00dbde, #fc00ff); }
+.btn.danger { background: rgba(200, 50, 50, 0.6); }
+.btn.danger:hover { background: rgba(220, 70, 70, 0.8); }
+.btn.success { background: rgba(50, 200, 50, 0.6); }
+.btn.success:hover { background: rgba(70, 220, 70, 0.8); }
+.btn.active { background: linear-gradient(90deg, #fc00ff, #00dbde); }
+.mode-toggle { display: flex; gap: 5px; margin-bottom: 15px; }
+.mode-toggle .btn { flex: 1; }
+.path-input { width: 100%; padding: 10px; background: rgba(50, 50, 80, 0.6); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: white; margin-bottom: 10px; }
+.path-input::placeholder { color: rgba(255, 255, 255, 0.5); }
+.path-list { max-height: 200px; overflow-y: auto; background: rgba(20, 20, 40, 0.5); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+.path-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 5px; background: rgba(50, 50, 80, 0.3); border-radius: 6px; }
+.path-item:hover { background: rgba(70, 70, 100, 0.5); }
+.loading { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(10, 10, 20, 0.9); z-index: 100; transition: opacity 0.5s ease; }
+.loading.hidden { opacity: 0; pointer-events: none; }
+.spinner { width: 60px; height: 60px; border: 5px solid rgba(0, 219, 222, 0.3); border-top: 5px solid #00dbde; border-radius: 50%; animation: spin 1.2s linear infinite; margin-bottom: 20px; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.instructions { background: rgba(30, 30, 50, 0.5); border-radius: 8px; padding: 15px; margin-bottom: 15px; font-size: 0.9rem; line-height: 1.4; }
+.instructions h3 { color: #00dbde; margin-bottom: 10px; }
+.status-bar { background: rgba(30, 30, 50, 0.7); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 0.8rem; font-family: monospace; }
+.load-status { background: rgba(30, 50, 30, 0.7); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 0.8rem; border-left: 4px solid #00ff00; }
+.load-status.error { background: rgba(50, 30, 30, 0.7); border-left-color: #ff0000; }
+@media (max-width: 768px) { .content { flex-direction: column; } .controls { width: 100%; } }
+</style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Campus Path Editor & Navigator</h1>
+        <p class="subtitle">Create custom walkable paths and navigate using predefined routes</p>
+    </header>
+    
+    <div class="content">
+        <div class="viewer-container">
+            <div id="canvas-container"></div>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <h3>Loading Campus Model...</h3>
+                <p>Loading locations and preparing path editor...</p>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <!-- 🎯 NEW: Data Load Status -->
+            <div class="load-status" id="load-status">
+                <div>Data Status: <span id="data-load-status">Loading...</span></div>
+                <div>Locations: <span id="loaded-location-count">0</span></div>
+                <div>Paths: <span id="loaded-path-count">0</span></div>
+            </div>
+
+            <div class="control-group">
+                <h2>Mode Selection</h2>
+                <div class="mode-toggle">
+                    <button id="navigate-mode" class="btn active">Navigate</button>
+                    <button id="edit-mode" class="btn">Edit Paths</button>
+                </div>
+            </div>
+
+            <!-- Navigation Mode -->
+            <div id="navigation-panel">
+                <div class="control-group">
+                    <h2>Camera Positions</h2>
+                    <div class="dropdown" id="dropdown">
+                        <div class="dropdown-header">
+                            <span id="dropdown-text">Select Position</span>
+                            <span>▼</span>
+                        </div>
+                        <div class="dropdown-options" id="dropdown-options"></div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h2>Navigation</h2>
+                    <label style="font-size: 0.9rem; margin-bottom: 5px; display: block;">From:</label>
+                    <div class="dropdown" id="from-dropdown">
+                        <div class="dropdown-header">
+                            <span id="from-dropdown-text">Select Start Point</span>
+                            <span>▼</span>
+                        </div>
+                        <div class="dropdown-options" id="from-dropdown-options"></div>
+                    </div>
+                    
+                    <label style="font-size: 0.9rem; margin-bottom: 5px; display: block; margin-top: 10px;">To:</label>
+                    <div class="dropdown" id="to-dropdown">
+                        <div class="dropdown-header">
+                            <span id="to-dropdown-text">Select End Point</span>
+                            <span>▼</span>
+                        </div>
+                        <div class="dropdown-options" id="to-dropdown-options"></div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button id="generate-path" class="btn primary" style="flex: 1;">Generate Path</button>
+                        <button id="clear-path" class="btn danger" style="flex: 1;">Clear Path</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h2>Person Model</h2>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="walk-path" class="btn success" style="flex: 1;">Walk Path</button>
+                        <button id="reset-person" class="btn danger" style="flex: 1;">Reset Person</button>
+                    </div>
+                    <div class="status-bar">
+                        <div>Progress: <span id="walk-progress">0%</span></div>
+                        <div>Height: <span id="person-height">0.00</span></div>
+                        <div>Using: <span id="path-type">No path</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Path Editor Mode -->
+            <div id="editor-panel" style="display: none;">
+                <div class="control-group">
+                    <h2>Path Editor</h2>
+                    <div class="instructions">
+                        <h3>How to create paths:</h3>
+                        <ul>
+                            <li>1. Enter path name (use ID format like "1_2")</li>
+                            <li>2. Click "Start Recording"</li>
+                            <li>3. Click points on the model</li>
+                            <li>4. Click "Save Path"</li>
+                            <li>5. Export when finished</li>
+                        </ul>
+                    </div>
+                    
+                    <input type="text" id="path-name" class="path-input" placeholder="Enter path name (e.g., 1_2 for Lab to Tennis)">
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button id="start-recording" class="btn primary" style="flex: 1;">Start Recording</button>
+                        <button id="save-path" class="btn success" style="flex: 1;">Save Path</button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button id="clear-current" class="btn danger" style="flex: 1;">Clear Current</button>
+                        <button id="undo-point" class="btn" style="flex: 1;">Undo Point</button>
+                    </div>
+                    
+                    <div class="status-bar">
+                        <div>Recording: <span id="recording-status">Stopped</span></div>
+                        <div>Points: <span id="point-count">0</span></div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h2>Saved Paths</h2>
+                    <div class="path-list" id="path-list">
+                        <p style="text-align: center; opacity: 0.6; padding: 20px;">Loading paths...</p>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button id="export-paths" class="btn primary" style="flex: 1;">Export JSON</button>
+                        <button id="import-paths" class="btn" style="flex: 1;">Import JSON</button>
+                    </div>
+                    <input type="file" id="file-input" accept=".json" style="display: none;">
+                    
+                    <!-- 🎯 NEW: Data Management Buttons -->
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button id="reload-data" class="btn" style="flex: 1;">Reload Data</button>
+                        <button id="show-all-paths" class="btn" style="flex: 1;">Show All Paths</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Main variables
+    let scene, camera, renderer, controls;
+    let model = null;
+    let currentPath = null;
+    let pathLine = null;
+    let personModel = null;
+    let isWalking = false;
+    let walkingProgress = 0;
+    let selectedFromPoint = null;
+    let selectedToPoint = null;
+    let raycaster = new THREE.Raycaster();
+    let mouse = new THREE.Vector2();
+    
+    // Path editor variables
+    let isRecording = false;
+    let currentRecordingPath = [];
+    let recordingMarkers = [];
+    let savedPaths = {};
+    let isEditMode = false;
+    let allPathLines = []; // Store all path visualizations
+    
+    // 🎯 NEW: Data from JSON
+    let CAMPUS_POINTS = {}; // Will be loaded from JSON
+    let LOCATION_ID_MAP = {}; // Map location names to IDs
+    let PREDEFINED_PATHS = {}; // Will be loaded from JSON
+    
+    // Camera configurations
+    const COORDINATES = {
+        DEFAULT: { position: [0.7578, 4.6168, -6.4757], target: [12.8938, 2.2596, -5.5850] },
+        CCIS: { position: [-11.4023, 3.1333, -6.5408], target: [-12.8938, 2.2596, -2.5850] },
+        CRIM: { position: [-7.0789, 2.6126, -6.3270], target: [-12.8938, 2.2596, -5.5850] },
+        COM: { position: [-1.5614, 5.0422, 0.7315], target: [12.8938, 2.2596, -5.5850] },
+        DEFAULT2: { position: [-24.1283, 7.0082, -11.4318], target: [0.0000, 0.0000, 0.0000] }
+    };
+
+    // 🎯 AUTOMATIC DATA LOADING FUNCTION
+    async function loadDataFromJSON() {
+        try {
+            document.getElementById('data-load-status').textContent = 'Loading from path.json...';
+            
+            const response = await fetch('./path.json');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Load locations
+            if (data.locations) {
+                CAMPUS_POINTS = {};
+                LOCATION_ID_MAP = {};
+                
+                Object.entries(data.locations).forEach(([locationName, locationData]) => {
+                    CAMPUS_POINTS[locationName] = {
+                        x: locationData.location.x,
+                        y: locationData.location.y,
+                        z: locationData.location.z
+                    };
+                    LOCATION_ID_MAP[locationName] = locationData.id;
+                });
+                
+                console.log('✅ Loaded locations:', Object.keys(CAMPUS_POINTS));
+                console.log('🗺️ Location ID mapping:', LOCATION_ID_MAP);
+            } else {
+                // Fallback to default locations if not in JSON
+                CAMPUS_POINTS = {
+                    "Laboratory": { x: -14.6737, y: 1.0284, z: 0.9795 },
+                    "Tennis Park": { x: -12.0075, y: 0.4986, z: 0.5129 },
+                    "BasketBall Court": { x: -19.9652, y: 0.4738, z: -8.9737 },
+                    "CRIM": { x: -19.3745, y: 0.8704, z: -5.8635 }
+                };
+                console.log('⚠️ Using default locations (no locations in JSON)');
+            }
+            
+            // Load paths
+            if (data.paths) {
+                PREDEFINED_PATHS = {};
+                savedPaths = {};
+                
+                Object.entries(data.paths).forEach(([pathId, pathData]) => {
+                    if (pathData.path) {
+                        PREDEFINED_PATHS[pathId] = pathData.path;
+                        savedPaths[pathId] = pathData.path;
+                    }
+                });
+                
+                console.log('✅ Loaded paths:', Object.keys(PREDEFINED_PATHS));
+            }
+            
+            const locationCount = Object.keys(CAMPUS_POINTS).length;
+            const pathCount = Object.keys(PREDEFINED_PATHS).length;
+            
+            document.getElementById('data-load-status').textContent = 'Successfully loaded!';
+            document.getElementById('loaded-location-count').textContent = locationCount;
+            document.getElementById('loaded-path-count').textContent = pathCount;
+            
+            // Update UI with loaded data
+            updatePathList();
+            updateLocationDropdowns();
+            addCampusPointMarkers();
+            resetPersonToFirstLocation();
+            
+            // Show success message
+            setTimeout(() => {
+                const loadStatus = document.getElementById('load-status');
+                loadStatus.style.background = 'rgba(30, 50, 30, 0.7)';
+                loadStatus.style.borderLeftColor = '#00ff00';
+            }, 100);
+            
+        } catch (error) {
+            console.error('❌ Error loading data:', error);
+            document.getElementById('data-load-status').textContent = 'Failed to load - using defaults';
+            
+            // Use default locations
+            CAMPUS_POINTS = {
+                "Laboratory": { x: -14.6737, y: 1.0284, z: 0.9795 },
+                "Tennis Park": { x: -12.0075, y: 0.4986, z: 0.5129 },
+                "BasketBall Court": { x: -19.9652, y: 0.4738, z: -8.9737 },
+                "CRIM": { x: -19.3745, y: 0.8704, z: -5.8635 }
+            };
+            
+            document.getElementById('loaded-location-count').textContent = Object.keys(CAMPUS_POINTS).length;
+            document.getElementById('loaded-path-count').textContent = '0';
+            
+            // Show error status
+            const loadStatus = document.getElementById('load-status');
+            loadStatus.classList.add('error');
+            
+            // Still update UI with default data
+            updateLocationDropdowns();
+            addCampusPointMarkers();
+            resetPersonToFirstLocation();
+        }
+    }
+
+    // 🎯 UPDATE LOCATION DROPDOWNS WITH LOADED DATA
+    function updateLocationDropdowns() {
+        // Clear existing dropdowns
+        const fromOptions = document.getElementById('from-dropdown-options');
+        const toOptions = document.getElementById('to-dropdown-options');
+        
+        fromOptions.innerHTML = '';
+        toOptions.innerHTML = '';
+        
+        const locationNames = Object.keys(CAMPUS_POINTS);
+        
+        locationNames.forEach(locationName => {
+            // From dropdown
+            const fromOption = document.createElement('div');
+            fromOption.className = 'dropdown-option';
+            fromOption.textContent = locationName;
+            fromOption.dataset.value = locationName;
+            fromOption.addEventListener('click', () => {
+                document.querySelectorAll('#from-dropdown .dropdown-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                fromOption.classList.add('selected');
+                document.getElementById('from-dropdown-text').textContent = locationName;
+                selectedFromPoint = locationName;
+                document.getElementById('from-dropdown').classList.remove('open');
+            });
+            fromOptions.appendChild(fromOption);
+            
+            // To dropdown
+            const toOption = document.createElement('div');
+            toOption.className = 'dropdown-option';
+            toOption.textContent = locationName;
+            toOption.dataset.value = locationName;
+            toOption.addEventListener('click', () => {
+                document.querySelectorAll('#to-dropdown .dropdown-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                toOption.classList.add('selected');
+                document.getElementById('to-dropdown-text').textContent = locationName;
+                selectedToPoint = locationName;
+                document.getElementById('to-dropdown').classList.remove('open');
+            });
+            toOptions.appendChild(toOption);
+        });
+    }
+
+    // 🎯 RESET PERSON TO FIRST LOADED LOCATION
+    function resetPersonToFirstLocation() {
+        if (personModel && Object.keys(CAMPUS_POINTS).length > 0) {
+            const firstLocationName = Object.keys(CAMPUS_POINTS)[0];
+            const firstPoint = CAMPUS_POINTS[firstLocationName];
+            personModel.position.set(firstPoint.x, firstPoint.y, firstPoint.z);
+            document.getElementById('person-height').textContent = firstPoint.y.toFixed(2);
+        }
+    }
+
+    // 🎯 SHOW ALL PATHS FUNCTION
+    function showAllPaths() {
+        // Clear existing path visualizations
+        allPathLines.forEach(line => scene.remove(line));
+        allPathLines = [];
+
+        if (Object.keys(PREDEFINED_PATHS).length === 0) {
+            alert('No paths loaded to display');
+            return;
+        }
+
+        // Create visualization for each path
+        Object.entries(PREDEFINED_PATHS).forEach(([pathId, pathPoints], index) => {
+            const pathCoordinates = pathPoints.map(point => 
+                new THREE.Vector3(point.x, point.y + 0.02, point.z)
+            );
+
+            if (pathCoordinates.length > 1) {
+                const curve = new THREE.CatmullRomCurve3(pathCoordinates);
+                const tubeGeometry = new THREE.TubeGeometry(curve, pathCoordinates.length * 2, 0.015, 8, false);
+                
+                // Use different colors for different paths
+                const colors = [0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff, 0xffa500];
+                const color = colors[index % colors.length];
+                
+                const tubeMaterial = new THREE.MeshBasicMaterial({ 
+                    color: color,
+                    transparent: true,
+                    opacity: 0.6
+                });
+                
+                const pathLine = new THREE.Mesh(tubeGeometry, tubeMaterial);
+                pathLine.userData = { isAllPathsVisualization: true, pathId: pathId };
+                scene.add(pathLine);
+                allPathLines.push(pathLine);
+            }
+        });
+
+        console.log(`🎨 Displaying ${allPathLines.length} paths`);
+        alert(`Displaying ${allPathLines.length} loaded paths in different colors`);
+    }
+
+    // Create person model
+    function createPersonModel() {
+        const personGroup = new THREE.Group();
+        
+        // Body
+        const bodyGeometry = new THREE.CylinderGeometry(0.03, 0.04, 0.12, 8);
+        const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x4169E1 });
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        body.position.y = 0.06;
+        personGroup.add(body);
+        
+        // Head
+        const headGeometry = new THREE.SphereGeometry(0.025, 8, 6);
+        const headMaterial = new THREE.MeshLambertMaterial({ color: 0xFFDBB5 });
+        const head = new THREE.Mesh(headGeometry, headMaterial);
+        head.position.y = 0.145;
+        personGroup.add(head);
+        
+        // Arms
+        const armGeometry = new THREE.CylinderGeometry(0.008, 0.008, 0.08, 6);
+        const armMaterial = new THREE.MeshLambertMaterial({ color: 0xFFDBB5 });
+        
+        const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+        leftArm.position.set(-0.045, 0.08, 0);
+        leftArm.rotation.z = 0.3;
+        personGroup.add(leftArm);
+        
+        const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+        rightArm.position.set(0.045, 0.08, 0);
+        rightArm.rotation.z = -0.3;
+        personGroup.add(rightArm);
+        
+        // Legs
+        const legGeometry = new THREE.CylinderGeometry(0.01, 0.01, 0.08, 6);
+        const legMaterial = new THREE.MeshLambertMaterial({ color: 0x2F4F4F });
+        
+        const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
+        leftLeg.position.set(-0.015, -0.04, 0);
+        personGroup.add(leftLeg);
+        
+        const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
+        rightLeg.position.set(0.015, -0.04, 0);
+        personGroup.add(rightLeg);
+        
+        // Position will be set after loading data
+        personGroup.position.set(0, 0, 0);
+        
+        return personGroup;
+    }
+
+    // Initialize scene
+    function init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0c0c1a);
+        scene.fog = new THREE.Fog(0x0c0c1a, 10, 50);
+        
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(...COORDINATES.DEFAULT.position);
+        
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true });
+        
+        const container = document.getElementById('canvas-container');
+        renderer.setSize(container.offsetWidth, container.offsetHeight);
+        renderer.shadowMap.enabled = false;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+        
+        const gridHelper = new THREE.GridHelper(40, 20, 0x444466, 0x222244);
+        gridHelper.position.y = -0.01;
+        scene.add(gridHelper);
+        
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
+        directionalLight.position.set(20, 30, 20);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+        
+        const fillLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        fillLight.position.set(-20, 20, 20);
+        scene.add(fillLight);
+        
+        const backLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        backLight.position.set(10, 20, -20);
+        scene.add(backLight);
+        
+        const topLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        topLight.position.set(0, 50, 0);
+        scene.add(topLight);
+        
+        // Controls
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.screenSpacePanning = false;
+        controls.maxDistance = 150;
+        controls.minDistance = 2;
+        controls.maxPolarAngle = Math.PI / 1.5;
+        
+        controls.target.set(...COORDINATES.DEFAULT.target);
+        controls.update();
+        
+        window.addEventListener('resize', onWindowResize, false);
+        
+        initUI();
+        
+        personModel = createPersonModel();
+        scene.add(personModel);
+        
+        // Add click listener for path recording
+        container.addEventListener('click', onMouseClick, false);
+        
+        // 🎯 LOAD DATA AUTOMATICALLY ON STARTUP
+        loadDataFromJSON();
+        
+        loadModel();
+    }
+
+    // Initialize UI
+    function initUI() {
+        initModeToggle();
+        initDropdown();
+        initPersonControls();
+        initPathEditor();
+        initNavigationControls();
+    }
+
+    // 🎯 INITIALIZE NAVIGATION CONTROLS
+    function initNavigationControls() {
+        document.getElementById('generate-path').addEventListener('click', generatePath);
+        document.getElementById('clear-path').addEventListener('click', clearPath);
+        
+        // Initialize dropdown headers
+        document.getElementById('from-dropdown').querySelector('.dropdown-header').addEventListener('click', () => {
+            document.querySelectorAll('.dropdown').forEach(d => {
+                if (d.id !== 'from-dropdown') d.classList.remove('open');
+            });
+            document.getElementById('from-dropdown').classList.toggle('open');
+        });
+        
+        document.getElementById('to-dropdown').querySelector('.dropdown-header').addEventListener('click', () => {
+            document.querySelectorAll('.dropdown').forEach(d => {
+                if (d.id !== 'to-dropdown') d.classList.remove('open');
+            });
+            document.getElementById('to-dropdown').classList.toggle('open');
+        });
+    }
+
+    // Mode toggle
+    function initModeToggle() {
+        const navigateBtn = document.getElementById('navigate-mode');
+        const editBtn = document.getElementById('edit-mode');
+        const navigationPanel = document.getElementById('navigation-panel');
+        const editorPanel = document.getElementById('editor-panel');
+
+        navigateBtn.addEventListener('click', () => {
+            isEditMode = false;
+            navigateBtn.classList.add('active');
+            editBtn.classList.remove('active');
+            navigationPanel.style.display = 'block';
+            editorPanel.style.display = 'none';
+            document.getElementById('canvas-container').style.cursor = 'default';
+        });
+
+        editBtn.addEventListener('click', () => {
+            isEditMode = true;
+            editBtn.classList.add('active');
+            navigateBtn.classList.remove('active');
+            navigationPanel.style.display = 'none';
+            editorPanel.style.display = 'block';
+        });
+    }
+
+    // Path editor initialization
+    function initPathEditor() {
+        document.getElementById('start-recording').addEventListener('click', startRecording);
+        document.getElementById('save-path').addEventListener('click', savePath);
+        document.getElementById('clear-current').addEventListener('click', clearCurrentPath);
+        document.getElementById('undo-point').addEventListener('click', undoLastPoint);
+        document.getElementById('export-paths').addEventListener('click', exportPaths);
+        document.getElementById('import-paths').addEventListener('click', () => {
+            document.getElementById('file-input').click();
+        });
+        document.getElementById('file-input').addEventListener('change', importPaths);
+        
+        // 🎯 NEW: Data management buttons
+        document.getElementById('reload-data').addEventListener('click', loadDataFromJSON);
+        document.getElementById('show-all-paths').addEventListener('click', showAllPaths);
+    }
+
+    // Mouse click handler for path recording
+    function onMouseClick(event) {
+        if (!isEditMode || !isRecording) return;
+
+        const rect = event.target.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+
+        // Get all meshes for intersection
+        const intersectObjects = [];
+        if (model) {
+            model.traverse((child) => {
+                if (child.isMesh) {
+                    intersectObjects.push(child);
+                }
+            });
+        }
+
+        // Add ground plane
+        const planeGeometry = new THREE.PlaneGeometry(100, 100);
+        const planeMaterial = new THREE.MeshBasicMaterial({ visible: false });
+        const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        plane.rotation.x = -Math.PI / 2;
+        plane.position.y = 0;
+        intersectObjects.push(plane);
+
+        const intersects = raycaster.intersectObjects(intersectObjects);
+
+        if (intersects.length > 0) {
+            const point = intersects[0].point;
+            addPathPoint(point);
+        }
+    }
+
+    // Path recording functions
+    function startRecording() {
+        const pathName = document.getElementById('path-name').value.trim();
+        if (!pathName) {
+            alert('Please enter a path name first');
+            return;
+        }
+
+        isRecording = !isRecording;
+        const btn = document.getElementById('start-recording');
+        
+        if (isRecording) {
+            btn.textContent = 'Stop Recording';
+            btn.classList.add('active');
+            document.getElementById('canvas-container').style.cursor = 'crosshair';
+            document.getElementById('recording-status').textContent = 'Recording';
+        } else {
+            btn.textContent = 'Start Recording';
+            btn.classList.remove('active');
+            document.getElementById('canvas-container').style.cursor = 'default';
+            document.getElementById('recording-status').textContent = 'Stopped';
+        }
+    }
+
+    function addPathPoint(point) {
+        const pathPoint = {
+            x: parseFloat(point.x.toFixed(4)),
+            y: parseFloat(point.y.toFixed(4)),
+            z: parseFloat(point.z.toFixed(4))
+        };
+
+        currentRecordingPath.push(pathPoint);
+
+        // Add visual marker
+        const geometry = new THREE.SphereGeometry(0.03, 8, 6);
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0x00ff00,
+            transparent: true,
+            opacity: 0.8
+        });
+
+        const marker = new THREE.Mesh(geometry, material);
+        marker.position.set(pathPoint.x, pathPoint.y + 0.03, pathPoint.z);
+        marker.userData = { isRecordingMarker: true };
+        scene.add(marker);
+        recordingMarkers.push(marker);
+
+        // Add connecting line if more than one point
+        if (currentRecordingPath.length > 1) {
+            updateRecordingPath();
+        }
+
+        document.getElementById('point-count').textContent = currentRecordingPath.length;
+    }
+
+    function updateRecordingPath() {
+        // Remove existing recording line
+        const existingLine = scene.children.find(child => child.userData.isRecordingLine);
+        if (existingLine) {
+            scene.remove(existingLine);
+        }
+
+        if (currentRecordingPath.length < 2) return;
+
+        // Create new line
+        const points = currentRecordingPath.map(p => new THREE.Vector3(p.x, p.y + 0.02, p.z));
+        const curve = new THREE.CatmullRomCurve3(points);
+        const tubeGeometry = new THREE.TubeGeometry(curve, points.length * 2, 0.015, 8, false);
+        const tubeMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x00ff00,
+            transparent: true,
+            opacity: 0.7
+        });
+
+        const pathLine = new THREE.Mesh(tubeGeometry, tubeMaterial);
+        pathLine.userData = { isRecordingLine: true };
+        scene.add(pathLine);
+    }
+
+    function savePath() {
+        const pathName = document.getElementById('path-name').value.trim();
+        if (!pathName) {
+            alert('Please enter a path name');
+            return;
+        }
+
+        if (currentRecordingPath.length < 2) {
+            alert('Path must have at least 2 points');
+            return;
+        }
+
+        savedPaths[pathName] = [...currentRecordingPath];
+        PREDEFINED_PATHS[pathName] = [...currentRecordingPath]; // Also add to predefined paths
+        updatePathList();
+        clearCurrentPath();
+        document.getElementById('path-name').value = '';
+        
+        // Update loaded path count
+        document.getElementById('loaded-path-count').textContent = Object.keys(PREDEFINED_PATHS).length;
+        
+        alert(`Path "${pathName}" saved with ${currentRecordingPath.length} points`);
+    }
+
+    function clearCurrentPath() {
+        currentRecordingPath = [];
+        recordingMarkers.forEach(marker => scene.remove(marker));
+        recordingMarkers = [];
+        
+        const recordingLine = scene.children.find(child => child.userData.isRecordingLine);
+        if (recordingLine) {
+            scene.remove(recordingLine);
+        }
+
+        document.getElementById('point-count').textContent = '0';
+    }
+
+    function undoLastPoint() {
+        if (currentRecordingPath.length === 0) return;
+
+        currentRecordingPath.pop();
+        const lastMarker = recordingMarkers.pop();
+        if (lastMarker) {
+            scene.remove(lastMarker);
+        }
+
+        updateRecordingPath();
+        document.getElementById('point-count').textContent = currentRecordingPath.length;
+    }
+
+    function updatePathList() {
+        const listContainer = document.getElementById('path-list');
+        
+        if (Object.keys(savedPaths).length === 0) {
+            listContainer.innerHTML = '<p style="text-align: center; opacity: 0.6; padding: 20px;">No paths loaded</p>';
+            return;
+        }
+
+        listContainer.innerHTML = '';
+        
+        Object.entries(savedPaths).forEach(([name, path]) => {
+            const item = document.createElement('div');
+            item.className = 'path-item';
+            
+            // Check if this path was loaded from JSON
+            const isFromJSON = PREDEFINED_PATHS[name] && PREDEFINED_PATHS[name].length === path.length;
+            const sourceIcon = isFromJSON ? '📁' : '✏️';
+            
+            item.innerHTML = `
+                <div>
+                    <div style="font-weight: bold; color: #00dbde;">${sourceIcon} ${name}</div>
+                    <div style="font-size: 0.8rem; opacity: 0.7;">${path.length} points ${isFromJSON ? '(from JSON)' : '(created)'}</div>
+                </div>
+                <button class="btn danger" onclick="deletePath('${name}')" style="padding: 4px 8px; margin: 0;">×</button>
+            `;
+            
+            listContainer.appendChild(item);
+        });
+    }
+
+    function deletePath(pathName) {
+        if (confirm(`Delete path "${pathName}"?`)) {
+            delete savedPaths[pathName];
+            delete PREDEFINED_PATHS[pathName];
+            updatePathList();
+            document.getElementById('loaded-path-count').textContent = Object.keys(PREDEFINED_PATHS).length;
+        }
+    }
+
+    function exportPaths() {
+        if (Object.keys(savedPaths).length === 0) {
+            alert('No paths to export');
+            return;
+        }
+
+        // 🎯 EXPORT IN YOUR JSON FORMAT
+        const exportData = {
+            version: "1.0",
+            created: new Date().toISOString(),
+            locations: {},
+            paths: {}
+        };
+
+        // Add locations with IDs
+        Object.entries(CAMPUS_POINTS).forEach(([locationName, coords], index) => {
+            const locationId = LOCATION_ID_MAP[locationName] || (index + 1);
+            exportData.locations[locationName] = {
+                id: locationId,
+                location: {
+                    x: coords.x,
+                    y: coords.y,
+                    z: coords.z
+                }
+            };
+        });
+
+        // Add paths
+        Object.entries(savedPaths).forEach(([pathName, pathPoints]) => {
+            exportData.paths[pathName] = {
+                path: pathPoints
+            };
+        });
+
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'path.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        console.log('Exported data:', exportData);
+    }
+
+    function importPaths(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                
+                // Handle new JSON format
+                if (data.locations) {
+                    Object.entries(data.locations).forEach(([locationName, locationData]) => {
+                        CAMPUS_POINTS[locationName] = {
+                            x: locationData.location.x,
+                            y: locationData.location.y,
+                            z: locationData.location.z
+                        };
+                        LOCATION_ID_MAP[locationName] = locationData.id;
+                    });
+                    updateLocationDropdowns();
+                    addCampusPointMarkers();
+                }
+                
+                if (data.paths) {
+                    Object.entries(data.paths).forEach(([pathId, pathData]) => {
+                        if (pathData.path) {
+                            savedPaths[pathId] = pathData.path;
+                            PREDEFINED_PATHS[pathId] = pathData.path;
+                        }
+                    });
+                    updatePathList();
+                    document.getElementById('loaded-path-count').textContent = Object.keys(PREDEFINED_PATHS).length;
+                    alert(`Imported ${Object.keys(data.paths).length} paths and ${Object.keys(data.locations || {}).length} locations`);
+                } else if (data.paths) {
+                    // Handle old format
+                    savedPaths = { ...savedPaths, ...data.paths };
+                    PREDEFINED_PATHS = { ...PREDEFINED_PATHS, ...data.paths };
+                    updatePathList();
+                    alert(`Imported ${Object.keys(data.paths).length} paths`);
+                } else {
+                    alert('Invalid file format');
+                }
+            } catch (error) {
+                alert('Error reading file: ' + error.message);
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // 🎯 UPDATED NAVIGATION FUNCTIONS WITH ID SUPPORT
+    function findPredefinedPath(from, to) {
+        // Try ID-based paths first
+        const fromId = LOCATION_ID_MAP[from];
+        const toId = LOCATION_ID_MAP[to];
+        
+        if (fromId && toId) {
+            // Try direct path (fromId_toId)
+            const directPathId = `${fromId}_${toId}`;
+            if (PREDEFINED_PATHS[directPathId]) {
+                console.log('✅ Found ID-based direct path:', directPathId);
+                return PREDEFINED_PATHS[directPathId];
+            }
+            
+            // Try reverse path (toId_fromId)
+            const reversePathId = `${toId}_${fromId}`;
+            if (PREDEFINED_PATHS[reversePathId]) {
+                console.log('✅ Found ID-based reverse path:', reversePathId);
+                return [...PREDEFINED_PATHS[reversePathId]].reverse();
+            }
+        }
+        
+        // Try name-based paths
+        const directPath = `${from}-${to}`;
+        if (PREDEFINED_PATHS[directPath]) {
+            return PREDEFINED_PATHS[directPath];
+        }
+
+        const reversePath = `${to}-${from}`;
+        if (PREDEFINED_PATHS[reversePath]) {
+            return [...PREDEFINED_PATHS[reversePath]].reverse();
+        }
+
+        return null;
+    }
+
+    function generatePath() {
+        if (!selectedFromPoint || !selectedToPoint) {
+            alert('Please select both start and end points');
+            return;
+        }
+        
+        if (selectedFromPoint === selectedToPoint) {
+            alert('Start and end points cannot be the same');
+            return;
+        }
+        
+        clearPath();
+
+        // First try to find predefined path
+        const predefinedPath = findPredefinedPath(selectedFromPoint, selectedToPoint);
+        
+        if (predefinedPath) {
+            // Use predefined path
+            const pathCoordinates = predefinedPath.map(point => 
+                new THREE.Vector3(point.x, point.y + 0.02, point.z)
+            );
+            
+            createPathVisualization(pathCoordinates);
+            currentPath = pathCoordinates;
+            document.getElementById('path-type').textContent = '✅ Using custom path';
+            
+            console.log('✅ Using predefined path:', selectedFromPoint, 'to', selectedToPoint);
+        } else {
+            // Fallback to simple direct path
+            const startPoint = CAMPUS_POINTS[selectedFromPoint];
+            const endPoint = CAMPUS_POINTS[selectedToPoint];
+            
+            if (!startPoint || !endPoint) {
+                alert('Location coordinates not found');
+                return;
+            }
+            
+            const pathCoordinates = [
+                new THREE.Vector3(startPoint.x, startPoint.y + 0.02, startPoint.z),
+                new THREE.Vector3(endPoint.x, endPoint.y + 0.02, endPoint.z)
+            ];
+            
+            createPathVisualization(pathCoordinates);
+            currentPath = pathCoordinates;
+            document.getElementById('path-type').textContent = '⚠️ Direct path (no custom path)';
+            
+            console.log('⚠️ Using direct path (no predefined path found)');
+        }
+    }
+
+    function createPathVisualization(pathCoordinates) {
+        const curve = new THREE.CatmullRomCurve3(pathCoordinates);
+        const tubeGeometry = new THREE.TubeGeometry(curve, pathCoordinates.length * 2, 0.02, 8, false);
+        const tubeMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000,
+            transparent: true,
+            opacity: 0.9
+        });
+        
+        pathLine = new THREE.Mesh(tubeGeometry, tubeMaterial);
+        scene.add(pathLine);
+    }
+
+    function clearPath() {
+        isWalking = false;
+        walkingProgress = 0;
+        
+        if (pathLine) {
+            scene.remove(pathLine);
+            pathLine = null;
+        }
+        
+        // Clear all path visualizations
+        allPathLines.forEach(line => scene.remove(line));
+        allPathLines = [];
+        
+        currentPath = null;
+        document.getElementById('walk-progress').textContent = '0%';
+        document.getElementById('path-type').textContent = 'No path';
+    }
+
+    // Add campus point markers
+    function addCampusPointMarkers() {
+        // Clear existing markers first
+        const existingMarkers = scene.children.filter(child => child.userData.isMarker);
+        existingMarkers.forEach(marker => scene.remove(marker));
+        
+        Object.entries(CAMPUS_POINTS).forEach(([name, point]) => {
+            const geometry = new THREE.SphereGeometry(0.05, 8, 6);
+            const material = new THREE.MeshBasicMaterial({ color: 0x00dbde, transparent: true, opacity: 0.8 });
+            const marker = new THREE.Mesh(geometry, material);
+            marker.position.set(point.x, point.y + 0.05, point.z);
+            marker.userData = { name: name, isMarker: true };
+            scene.add(marker);
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 256;
+            canvas.height = 64;
+            context.fillStyle = '#ffffff';
+            context.font = '16px Arial';
+            context.textAlign = 'center';
+            context.fillText(name, 128, 40);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.position.set(point.x, point.y + 0.2, point.z);
+            sprite.scale.set(0.4, 0.1, 1);
+            sprite.userData = { name: name, isMarker: true };
+            scene.add(sprite);
+        });
+    }
+
+    // Person controls
+    function initPersonControls() {
+        document.getElementById('walk-path').addEventListener('click', () => {
+            if (currentPath && currentPath.length > 0) {
+                startWalking();
+            } else {
+                alert('Please generate a path first!');
+            }
+        });
+        
+        document.getElementById('reset-person').addEventListener('click', () => {
+            resetPerson();
+        });
+    }
+    
+    function startWalking() {
+        if (!currentPath || currentPath.length === 0) return;
+        
+        isWalking = true;
+        walkingProgress = 0;
+        
+        if (currentPath.length > 0) {
+            personModel.position.copy(currentPath[0]);
+        }
+    }
+    
+    function resetPerson() {
+        isWalking = false;
+        walkingProgress = 0;
+        
+        const firstLocationName = Object.keys(CAMPUS_POINTS)[0];
+        if (firstLocationName) {
+            const firstPoint = CAMPUS_POINTS[firstLocationName];
+            personModel.position.set(firstPoint.x, firstPoint.y, firstPoint.z);
+            document.getElementById('walk-progress').textContent = '0%';
+            document.getElementById('person-height').textContent = firstPoint.y.toFixed(2);
+        }
+    }
+
+    // Load model
+    function loadModel() {
+        const loader = new THREE.GLTFLoader();
+        const modelUrl = 'nwssu.glb';
+        
+        loader.load(
+            modelUrl,
+            (gltf) => {
+                model = gltf.scene;
+                
+                const bbox = new THREE.Box3().setFromObject(model);
+                const size = bbox.getSize(new THREE.Vector3());
+                
+                const maxDimension = Math.max(size.x, size.y, size.z);
+                const scale = 50 / maxDimension;
+                model.scale.setScalar(scale);
+                
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                
+                scene.add(model);
+                controls.target.set(0, 0, 0);
+                controls.update();
+                
+                document.getElementById('loading').classList.add('hidden');
+                renderer.render(scene, camera);
+            },
+            (xhr) => {
+                const percent = Math.round((xhr.loaded / xhr.total) * 100);
+            },
+            (error) => {
+                document.getElementById('loading').classList.add('hidden');
+                createPlaceholderModel();
+            }
+        );
+    }
+    
+    function createPlaceholderModel() {
+        const geometry = new THREE.BoxGeometry(5, 3, 5);
+        const material = new THREE.MeshLambertMaterial({ color: 0x888888, transparent: true, opacity: 0.8 });
+        
+        model = new THREE.Mesh(geometry, material);
+        model.position.set(0, 1.5, 0);
+        model.castShadow = true;
+        model.receiveShadow = true;
+        
+        scene.add(model);
+    }
+
+    // Camera dropdown
+    function initDropdown() {
+        const dropdown = document.getElementById('dropdown');
+        const dropdownOptions = document.getElementById('dropdown-options');
+        const dropdownText = document.getElementById('dropdown-text');
+        
+        Object.keys(COORDINATES).forEach(key => {
+            const option = document.createElement('div');
+            option.className = 'dropdown-option';
+            option.textContent = key;
+            option.dataset.key = key;
+            
+            option.addEventListener('click', () => {
+                document.querySelectorAll('#dropdown .dropdown-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                option.classList.add('selected');
+                
+                dropdownText.textContent = key;
+                animateCameraToCoordinate(key);
+                dropdown.classList.remove('open');
+            });
+            
+            dropdownOptions.appendChild(option);
+        });
+        
+        dropdown.querySelector('.dropdown-header').addEventListener('click', () => {
+            dropdown.classList.toggle('open');
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('open');
+            }
+        });
+    }
+    
+    function animateCameraToCoordinate(coordinateKey) {
+        const coordinate = COORDINATES[coordinateKey];
+        if (!coordinate) return;
+        
+        const duration = 1000;
+        const startPosition = camera.position.clone();
+        const startTarget = controls.target.clone();
+        const endPosition = new THREE.Vector3(...coordinate.position);
+        const endTarget = new THREE.Vector3(...coordinate.target);
+        const startTime = Date.now();
+        
+        function updateCamera() {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            const ease = progress < 0.5
+                ? 4 * progress * progress * progress
+                : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+            
+            camera.position.lerpVectors(startPosition, endPosition, ease);
+            controls.target.lerpVectors(startTarget, endTarget, ease);
+            controls.update();
+            
+            if (progress < 1) {
+                requestAnimationFrame(updateCamera);
+            }
+        }
+        
+        requestAnimationFrame(updateCamera);
+    }
+    
+    function onWindowResize() {
+        camera.aspect = document.getElementById('canvas-container').offsetWidth / document.getElementById('canvas-container').offsetHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(document.getElementById('canvas-container').offsetWidth, document.getElementById('canvas-container').offsetHeight);
+    }
+    
+    // Animation loop
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        // Animate person walking
+        if (isWalking && currentPath && currentPath.length > 1) {
+            walkingProgress += 0.005;
+            
+            if (walkingProgress >= 1) {
+                walkingProgress = 1;
+                isWalking = false;
+            }
+            
+            const totalLength = currentPath.length - 1;
+            const scaledProgress = walkingProgress * totalLength;
+            const index = Math.floor(scaledProgress);
+            const fraction = scaledProgress - index;
+            
+            if (index < currentPath.length - 1) {
+                const start = currentPath[index];
+                const end = currentPath[index + 1];
+                
+                personModel.position.lerpVectors(start, end, fraction);
+                
+                const direction = new THREE.Vector3().subVectors(end, start).normalize();
+                if (direction.length() > 0) {
+                    personModel.lookAt(personModel.position.clone().add(direction));
+                }
+                
+                const bobOffset = Math.sin(Date.now() * 0.01) * 0.01;
+                personModel.position.y += bobOffset;
+                
+                document.getElementById('walk-progress').textContent = Math.round(walkingProgress * 100) + '%';
+                document.getElementById('person-height').textContent = personModel.position.y.toFixed(2);
+            }
+        }
+        
+        controls.update();
+        renderer.render(scene, camera);
+    }
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+        document.querySelectorAll('.dropdown').forEach(dropdown => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('open');
+            }
+        });
+    });
+
+    // Make deletePath available globally
+    window.deletePath = deletePath;
+    
+    init();
+    animate();
+</script>
+</body>
+</html>
