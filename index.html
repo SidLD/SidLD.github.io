@@ -368,6 +368,13 @@
             color: #22c55e;
         }
 
+        .error-message {
+            text-align: center;
+            color: #ef4444;
+            padding: 20px;
+            font-size: 0.875rem;
+        }
+
         /* Responsive adjustments */
         @media (max-width: 480px) {
             .mobile-widget {
@@ -517,45 +524,6 @@
             CRIM: { position: [-7.0789, 2.6126, -6.3270], target: [-12.8938, 2.2596, -5.5850] },
             COM: { position: [-1.5614, 5.0422, 0.7315], target: [12.8938, 2.2596, -5.5850] },
             DEFAULT2: { position: [-24.1283, 7.0082, -11.4318], target: [0.0000, 0.0000, 0.0000] }
-        };
-
-        // Sample data (replace with your actual path.json)
-        const SAMPLE_DATA = {
-            "locations": {
-                "Laboratory": { "name": "Laboratory Building", "x": -15.2, "y": 0.5, "z": -8.1 },
-                "TennisPark": { "name": "Tennis Park", "x": -12.8, "y": 0.3, "z": -2.5 },
-                "CCIS": { "name": "CCIS Building", "x": -8.5, "y": 0.4, "z": -6.2 },
-                "CRIM": { "name": "CRIM Building", "x": -5.2, "y": 0.3, "z": -4.8 },
-                "COM": { "name": "COM Building", "x": 2.1, "y": 0.5, "z": 1.2 },
-                "MainGate": { "name": "Main Gate", "x": 0.0, "y": 0.2, "z": 0.0 }
-            },
-            "paths": {
-                "Laboratory_TennisPark": {
-                    "path": [
-                        { "x": -15.2, "y": 0.5, "z": -8.1 },
-                        { "x": -14.8, "y": 0.4, "z": -7.2 },
-                        { "x": -14.1, "y": 0.4, "z": -6.1 },
-                        { "x": -13.5, "y": 0.3, "z": -4.8 },
-                        { "x": -12.8, "y": 0.3, "z": -2.5 }
-                    ]
-                },
-                "TennisPark_CCIS": {
-                    "path": [
-                        { "x": -12.8, "y": 0.3, "z": -2.5 },
-                        { "x": -11.2, "y": 0.35, "z": -3.8 },
-                        { "x": -9.8, "y": 0.4, "z": -5.2 },
-                        { "x": -8.5, "y": 0.4, "z": -6.2 }
-                    ]
-                },
-                "CCIS_CRIM": {
-                    "path": [
-                        { "x": -8.5, "y": 0.4, "z": -6.2 },
-                        { "x": -7.2, "y": 0.35, "z": -5.8 },
-                        { "x": -6.1, "y": 0.3, "z": -5.2 },
-                        { "x": -5.2, "y": 0.3, "z": -4.8 }
-                    ]
-                }
-            }
         };
 
         // Initialize the application
@@ -710,19 +678,12 @@
         // Load data from JSON
         async function loadDataFromJSON() {
             try {
-                // Try to load from path.json, fallback to sample data
-                let data;
-                try {
-                    const response = await fetch('./path.json');
-                    if (response.ok) {
-                        data = await response.json();
-                    } else {
-                        throw new Error('Failed to load path.json');
-                    }
-                } catch (error) {
-                    console.log('Using sample data');
-                    data = SAMPLE_DATA;
+                const response = await fetch('path.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+
+                const data = await response.json();
 
                 // Load locations
                 if (data.locations) {
@@ -738,6 +699,8 @@
                         };
                         LOCATION_ID_MAP[displayName] = locationKey;
                     });
+
+                    console.log('✅ Loaded locations:', Object.keys(CAMPUS_LOCATIONS));
                 }
 
                 // Load paths
@@ -746,6 +709,8 @@
                     Object.entries(data.paths).forEach(([pathKey, pathData]) => {
                         PREDEFINED_PATHS[pathKey] = pathData.path;
                     });
+
+                    console.log('✅ Loaded paths:', Object.keys(PREDEFINED_PATHS));
                 }
 
                 // Update UI
@@ -762,7 +727,7 @@
                 }
 
             } catch (error) {
-                console.error('Error loading data:', error);
+                console.error('❌ Error loading data:', error);
                 updatePathListWithError();
             }
         }
@@ -818,9 +783,9 @@
         function updatePathListWithError() {
             const listContainer = document.getElementById('path-list');
             listContainer.innerHTML = `
-                <div style="text-align: center; color: #94a3b8; padding: 20px;">
+                <div class="error-message">
                     <p>❌ Could not load path.json</p>
-                    <p style="font-size: 0.6875rem; margin-top: 8px;">Using sample data instead</p>
+                    <p style="font-size: 0.75rem; margin-top: 8px;">Make sure path.json is in the same folder as this HTML file</p>
                 </div>
             `;
         }
@@ -859,6 +824,7 @@
                 createPathVisualization(pathCoordinates);
                 currentPath = pathCoordinates;
                 updatePathStatus('✅ Using custom path', pathResult.pathId + (pathResult.reversed ? ' (reversed)' : ''));
+                console.log('✅ Using predefined path:', pathResult.pathId, pathResult.reversed ? '(reversed)' : '');
             } else {
                 // Fallback to direct path
                 const startPoint = CAMPUS_LOCATIONS[selectedFromPoint];
@@ -872,6 +838,7 @@
                     createPathVisualization(pathCoordinates);
                     currentPath = pathCoordinates;
                     updatePathStatus('⚠️ Direct path (no custom path)', 'Direct line');
+                    console.log('⚠️ Using direct path (no predefined path found)');
                 }
             }
 
@@ -880,10 +847,11 @@
 
         // Find predefined path
         function findPredefinedPath(fromLocation, toLocation) {
-            const fromKey = LOCATION_ID_MAP[fromLocation];
-            const toKey = LOCATION_ID_MAP[toLocation];
+            const fromKey = fromLocation;
+            const toKey = toLocation;
 
             if (!fromKey || !toKey) {
+                console.log('❌ Could not find keys for locations:', fromLocation, toLocation);
                 return null;
             }
 
@@ -907,6 +875,7 @@
                 };
             }
 
+            console.log('❌ No path found between keys:', fromKey, toKey);
             return null;
         }
 
@@ -997,11 +966,13 @@
                     });
                     
                     const pathLine = new THREE.Mesh(tubeGeometry, tubeMaterial);
+                    pathLine.userData = { isAllPathsVisualization: true, pathId: pathId };
                     scene.add(pathLine);
                     allPathLines.push(pathLine);
                 }
             });
 
+            console.log(`🎨 Displaying ${allPathLines.length} paths`);
             alert(`Displaying ${allPathLines.length} loaded paths in different colors`);
         }
 
@@ -1095,7 +1066,6 @@
         function loadModel() {
             const loader = new THREE.GLTFLoader();
             
-            // Try to load the model, create placeholder if it fails
             loader.load(
                 'nwssu.glb',
                 (gltf) => {
@@ -1114,7 +1084,10 @@
                     });
 
                     scene.add(model);
+                    controls.target.set(0, 0, 0);
+                    controls.update();
                     document.getElementById('loading').classList.add('hidden');
+                    renderer.render(scene, camera);
                 },
                 (xhr) => {
                     // Progress callback
@@ -1137,6 +1110,8 @@
             });
             model = new THREE.Mesh(geometry, material);
             model.position.set(0, 1.5, 0);
+            model.castShadow = true;
+            model.receiveShadow = true;
             scene.add(model);
         }
 
