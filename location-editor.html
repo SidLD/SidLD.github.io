@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced NWSSU GLB Viewer - Coordinate Tracker</title>
+    <title>Enhanced NWSSU GLB Viewer - Fixed Camera Navigation</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
@@ -755,6 +754,7 @@
         let isPointerLocked = false;
         let euler = new THREE.Euler(0, 0, 0, 'YXZ');
         let velocity = new THREE.Vector3();
+        let lastOrbitTarget = new THREE.Vector3(0, 0, 0);
         
         const COORDINATES = {
             DEFAULT: {
@@ -880,6 +880,7 @@
             controls.maxPolarAngle = Math.PI / 1.5;
             
             controls.target.set(...COORDINATES.DEFAULT.target);
+            lastOrbitTarget.copy(controls.target);
             controls.update();
             
             // Handle window resize
@@ -900,7 +901,6 @@
             // Load the model
             loadModel();
         }
-
 
         // Initialize navigation mode controls
         function initNavigationModes() {
@@ -987,6 +987,7 @@
 
         // Set navigation mode
         function setNavigationMode(mode) {
+            const previousMode = navigationMode;
             navigationMode = mode;
             
             // Update button states
@@ -1002,6 +1003,15 @@
             // Configure controls based on mode
             switch (mode) {
                 case 'orbit':
+                    // Save the current camera direction to use as target
+                    if (previousMode === 'fly') {
+                        const direction = new THREE.Vector3(0, 0, -1);
+                        direction.applyQuaternion(camera.quaternion);
+                        const target = new THREE.Vector3().copy(camera.position).add(direction.multiplyScalar(10));
+                        controls.target.copy(target);
+                        lastOrbitTarget.copy(target);
+                    }
+                    
                     controls.enabled = true;
                     controls.enableRotate = true;
                     controls.enablePan = true;
@@ -1011,11 +1021,23 @@
                     break;
                     
                 case 'fly':
+                    // Save the current orbit target
+                    lastOrbitTarget.copy(controls.target);
+                    
                     controls.enabled = false;
                     container.style.cursor = 'pointer';
                     break;
                     
                 case 'object':
+                    // Save the current camera direction to use as target
+                    if (previousMode === 'fly') {
+                        const direction = new THREE.Vector3(0, 0, -1);
+                        direction.applyQuaternion(camera.quaternion);
+                        const target = new THREE.Vector3().copy(camera.position).add(direction.multiplyScalar(10));
+                        controls.target.copy(target);
+                        lastOrbitTarget.copy(target);
+                    }
+                    
                     controls.enabled = true;
                     controls.enableRotate = false; // Disable camera rotation
                     controls.enablePan = true;     // Allow panning
@@ -1312,28 +1334,7 @@
                 return;
             }
             
-            const exportObject = {
-    "Laboratory": {
-        "x": -14.6737,
-        "y": 1.0284,
-        "z": 0.9795
-    },
-    "Tennis Park": {
-        "x": -12.0075,
-        "y": 0.4986,
-        "z": 0.5129
-    },
-    "BasketBall Court": {
-        "x": -19.9652,
-        "y": 0.4738,
-        "z": -8.9737
-    },
-    "CRIM": {
-        "x": -19.3745,
-        "y": 0.8704,
-        "z": -5.8635
-    }
-};
+            const exportObject = {};
             collectedPoints.forEach(point => {
                 exportObject[point.name] = {
                     x: point.x,
@@ -1394,7 +1395,18 @@
         function initCoordinatePrinter() {
             document.getElementById('print-coordinates').addEventListener('click', () => {
                 const cameraPos = camera.position;
-                const targetPos = controls.target;
+                let targetPos;
+                
+                // Calculate target based on current navigation mode
+                if (navigationMode === 'fly') {
+                    // For fly mode, calculate where the camera is looking
+                    const direction = new THREE.Vector3(0, 0, -1);
+                    direction.applyQuaternion(camera.quaternion);
+                    targetPos = new THREE.Vector3().copy(camera.position).add(direction.multiplyScalar(10));
+                } else {
+                    // For orbit and object modes, use the controls target
+                    targetPos = controls.target;
+                }
                 
                 const cameraCoords = [cameraPos.x.toFixed(4), cameraPos.y.toFixed(4), cameraPos.z.toFixed(4)];
                 const targetCoords = [targetPos.x.toFixed(4), targetPos.y.toFixed(4), targetPos.z.toFixed(4)];
