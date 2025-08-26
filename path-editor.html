@@ -9,25 +9,695 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
     <link rel="stylesheet" href="./styles.css" />
-    <style>
-        /* Added styles for fly mode button in editor */
-        .fly-mode-btn-container {
-            margin-top: 12px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .fly-mode-btn-container .btn {
-            margin-top: 8px;
-        }
-        
-        .fly-mode-status {
-            font-size: 0.8rem;
-            color: #00dbde;
-            margin-top: 5px;
-        }
-    </style>
+  <style>
+/* Base styles and reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #fff;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* Header Styles */
+header {
+    position: relative;
+    text-align: center;
+    padding: 10px 15px;
+    background: rgba(20, 20, 35, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    position: relative;
+}
+
+h1 {
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    margin-bottom: 5px;
+    background: linear-gradient(90deg, #00dbde, #fc00ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    flex: 1;
+    text-align: center;
+}
+
+.subtitle {
+    font-size: clamp(0.8rem, 2.5vw, 1rem);
+    opacity: 0.8;
+    max-width: 100%;
+}
+
+/* Burger Menu Button */
+.burger-menu {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #00dbde;
+    font-size: 1.8rem;
+    cursor: pointer;
+    z-index: 1001;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.burger-menu:hover {
+    background: rgba(0, 219, 222, 0.1);
+}
+
+.burger-menu.active {
+    color: #fc00ff;
+}
+
+/* Main content area */
+.content {
+    flex: 1;
+    position: relative;
+    display: flex;
+}
+
+.viewer-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+#canvas-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: default;
+}
+
+/* Drawer Overlay */
+.drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.drawer-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Controls Panel */
+.controls {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(90vw, 350px);
+    height: 100vh;
+    background: rgba(20, 20, 35, 0.98);
+    backdrop-filter: blur(15px);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 80px 20px 20px;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 999;
+}
+
+.controls.active {
+    transform: translateX(0);
+}
+
+/* Close Button */
+.close-drawer {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: #fc00ff;
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.close-drawer:hover {
+    background: rgba(252, 0, 255, 0.1);
+}
+
+.control-group {
+    margin-bottom: 20px;
+}
+
+h2 {
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    color: #00dbde;
+    position: relative;
+    padding-bottom: 6px;
+}
+
+h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 40px;
+    height: 2px;
+    background: linear-gradient(90deg, #00dbde, #fc00ff);
+    border-radius: 2px;
+}
+
+h3 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    color: #fc00ff;
+}
+
+/* Dropdown Styles */
+.dropdown {
+    position: relative;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: rgba(50, 50, 80, 0.6);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.9rem;
+}
+
+.dropdown-header:hover {
+    background: rgba(70, 70, 100, 0.8);
+}
+
+.dropdown-header.selected {
+    background: rgba(0, 219, 222, 0.2);
+    border-color: #00dbde;
+}
+
+.dropdown-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: rgba(40, 40, 65, 0.95);
+    border-radius: 8px;
+    margin-top: 5px;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: all 0.4s ease;
+    z-index: 10;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow-y: auto;
+}
+
+.dropdown.open .dropdown-options {
+    max-height: 250px;
+    opacity: 1;
+    overflow-y: auto;
+}
+
+/* Custom scrollbar styling */
+.dropdown-options::-webkit-scrollbar {
+    width: 8px;
+}
+
+.dropdown-options::-webkit-scrollbar-track {
+    background: rgba(30, 30, 50, 0.5);
+    border-radius: 4px;
+}
+
+.dropdown-options::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, #00dbde, #fc00ff);
+    border-radius: 4px;
+}
+
+.dropdown-options::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(90deg, #00c7ca, #e000e3);
+}
+
+.dropdown-option {
+    padding: 10px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.dropdown-option:hover {
+    background: rgba(90, 90, 140, 0.8);
+}
+
+.dropdown-option.selected {
+    background: linear-gradient(90deg, #00dbde, #fc00ff);
+    color: white;
+}
+
+/* Button Styles */
+.control-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 10px;
+    background: rgba(50, 50, 80, 0.6);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.btn:hover {
+    background: rgba(70, 70, 100, 0.8);
+    transform: translateY(-2px);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn.primary {
+    background: linear-gradient(90deg, #00dbde, #fc00ff);
+}
+
+.btn.primary:hover {
+    box-shadow: 0 4px 12px rgba(0, 219, 222, 0.3);
+}
+
+.btn.danger {
+    background: rgba(200, 50, 50, 0.6);
+}
+
+.btn.danger:hover {
+    background: rgba(220, 70, 70, 0.8);
+    box-shadow: 0 4px 12px rgba(200, 50, 50, 0.3);
+}
+
+.btn.success {
+    background: rgba(50, 200, 50, 0.6);
+}
+
+.btn.success:hover {
+    background: rgba(70, 220, 70, 0.8);
+    box-shadow: 0 4px 12px rgba(50, 200, 50, 0.3);
+}
+
+.btn.active {
+    box-shadow: 0 0 0 2px #00dbde;
+}
+
+/* Mode Toggle */
+.mode-toggle {
+    display: flex;
+    background: rgba(40, 40, 65, 0.6);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+.mode-toggle .btn {
+    flex: 1;
+    border-radius: 0;
+    min-width: auto;
+}
+
+/* Status Bars */
+.status-bar {
+    background: rgba(30, 30, 50, 0.7);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 12px;
+    font-size: 0.8rem;
+    font-family: monospace;
+    border-left: 3px solid #00dbde;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status-item:last-child {
+    border-bottom: none;
+}
+
+.status-label {
+    font-weight: bold;
+    color: #00dbde;
+    font-size: 0.8rem;
+}
+
+.status-value {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: #fff;
+}
+
+/* Loading Screen */
+.loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 10, 20, 0.9);
+    z-index: 100;
+    transition: opacity 0.5s ease;
+}
+
+.loading.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(0, 219, 222, 0.3);
+    border-top: 4px solid #00dbde;
+    border-radius: 50%;
+    animation: spin 1.2s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Path Input */
+.path-input {
+    width: 100%;
+    padding: 10px;
+    background: rgba(40, 40, 65, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: white;
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+}
+
+.path-input:focus {
+    outline: none;
+    border-color: #00dbde;
+    box-shadow: 0 0 0 2px rgba(0, 219, 222, 0.2);
+}
+
+/* Path List */
+.path-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+    background: rgba(30, 30, 50, 0.5);
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.path-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    margin-bottom: 8px;
+    background: rgba(50, 50, 80, 0.6);
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.path-item:last-child {
+    margin-bottom: 0;
+}
+
+/* Instructions */
+.instructions {
+    background: rgba(30, 30, 50, 0.6);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+}
+
+.instructions ul {
+    padding-left: 20px;
+    margin-top: 8px;
+}
+
+.instructions li {
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+/* Auto Camera Notification */
+.auto-camera-status {
+    background: rgba(0, 219, 222, 0.2);
+    border: 1px solid rgba(0, 219, 222, 0.5);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    text-align: center;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.7; }
+    50% { opacity: 1; }
+    100% { opacity: 0.7; }
+}
+
+/* Load Status */
+.load-status {
+    background: rgba(30, 30, 50, 0.7);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-left: 3px solid #00dbde;
+}
+
+.load-status.error {
+    border-left-color: #ff4444;
+}
+
+/* Fly Mode Controls */
+.fly-controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(20, 20, 35, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    padding: 15px;
+    z-index: 50;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0, 219, 222, 0.3);
+}
+
+.fly-controls.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.fly-mode-btn {
+    background: linear-gradient(90deg, #00dbde, #fc00ff);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    padding: 8px 15px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9rem;
+}
+
+.fly-instructions {
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.fly-instructions p {
+    margin-bottom: 5px;
+}
+
+.fly-key {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin: 0 2px;
+    font-family: monospace;
+    font-size: 0.75rem;
+}
+
+/* Crosshair for fly mode */
+.crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 40;
+}
+
+.crosshair::before, .crosshair::after {
+    content: '';
+    position: absolute;
+    background: rgba(0, 219, 222, 0.8);
+}
+
+.crosshair::before {
+    width: 2px;
+    height: 20px;
+    left: 9px;
+    top: 0;
+}
+
+.crosshair::after {
+    width: 20px;
+    height: 2px;
+    left: 0;
+    top: 9px;
+}
+
+body.fly-mode .crosshair {
+    opacity: 1;
+}
+
+/* Fly mode button container in editor */
+.fly-mode-btn-container {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.fly-mode-btn-container .btn {
+    margin-top: 8px;
+}
+
+.fly-mode-status {
+    font-size: 0.8rem;
+    color: #00dbde;
+    margin-top: 5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .burger-menu {
+        font-size: 1.5rem;
+        width: 35px;
+        height: 35px;
+    }
+
+    .controls {
+        padding: 70px 15px 15px;
+    }
+
+    .control-buttons {
+        flex-direction: column;
+    }
+
+    .control-buttons .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .controls {
+        width: 95vw;
+        padding: 60px 12px 12px;
+    }
+
+    h2 {
+        font-size: 1rem;
+    }
+    
+    .fly-controls {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Cursor styles for different modes */
+.recording {
+    cursor: crosshair !important;
+}
+
+.fly-mode {
+    cursor: none !important;
+}
+</style>
 </head>
 <body>
     <div class="container">
@@ -315,56 +985,16 @@
                 document.getElementById('data-load-status').textContent = 'Loading from path.json...';
                 
                 // Simulate loading data (in a real app, you'd fetch this from a file)
-                setTimeout(() => {
-                    // Mock data for demonstration
-                    CAMPUS_POINTS = {
-                        "Laboratory": { x: -14.6737, y: 1.0284, z: 0.9795 },
-                        "Tennis Park": { x: -12.0075, y: 0.4986, z: 0.5129 },
-                        "BasketBall Court": { x: -19.9652, y: 0.4738, z: -8.9737 },
-                        "CRIM": { x: -19.3745, y: 0.8704, z: -5.8635 },
-                        "room_309": { x: -18.5058, y: 1.0101, z: 0.8616 },
-                        "room_308": { x: -17.644, y: 1.0101, z: 0.8687 },
-                        "room_306": { x: -16.6467, y: 1.0101, z: 0.9252 },
-                        "room_307": { x: -17.1184, y: 1.0101, z: 0.9214 },
-                        "room_304": { x: -14.8141, y: 1.0101, z: 0.9113 },
-                        "room_303": { x: -14.1353, y: 1.0101, z: 0.9035 },
-                        "room_301": { x: -12.6236, y: 1.0101, z: 0.9404 },
-                        "room_302": { x: -13.3405, y: 1.0101, z: 0.9308 },
-                        "multimedia_room": { x: -17.9743, y: 0.7638, z: 0.9431 },
-                        "multimedia_lab": { x: -17.2209, y: 0.7638, z: 0.9364 },
-                        "lab_3": { x: -16.525, y: 0.7638, z: 0.948 },
-                        "speech": { x: -15.4037, y: 0.7638, z: 0.9398 },
-                        "lab_2": { x: -13.6121, y: 0.7638, z: 0.9533 },
-                        "lab_1": { x: -12.6305, y: 0.7638, z: 0.9166 },
-                        "gate_1": { x: -9.9937, y: 0.4945, z: 2.8115 },
-                        "registrar": { x: -10.0799, y: 0.4951, z: 1.2382 },
-                        "tennis_court": { x: -13.7022, y: 0.4986, z: 0.4928 },
-                        "faculty": { x: -14.4935, y: 0.4952, z: 0.9129 },
-                        "dean_office": { x: -14.7936, y: 0.4952, z: 0.9106 },
-                        "conferrence_room": { x: -15.4665, y: 0.5027, z: 0.9818 },
-                        "basketball_court": { x: -19.4388, y: 0.4738, z: -8.8111 }
-                    };
-                    
-                    // Mock paths with lookout points
-                    PREDEFINED_PATHS = {
-                        "1_2": {
-                            path: [
-                                { x: -14.6737, y: 1.0284, z: 0.9795 },
-                                { x: -13.5000, y: 0.8000, z: 0.7500 },
-                                { x: -12.0075, y: 0.4986, z: 0.5129 }
-                            ],
-                            lookout: { x: -13.0000, y: 1.5000, z: 0.6000 }
-                        },
-                        "2_3": {
-                            path: [
-                                { x: -12.0075, y: 0.4986, z: 0.5129 },
-                                { x: -15.0000, y: 0.4800, z: -2.0000 },
-                                { x: -17.5000, y: 0.4750, z: -5.5000 },
-                                { x: -19.9652, y: 0.4738, z: -8.9737 }
-                            ],
-                            lookout: { x: -15.5000, y: 1.8000, z: -3.0000 }
+                        setTimeout(async () => {
+                            // Mock data for demonstration
+                            const response = await fetch('path.json');
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
                         }
-                    };
+                
+                    const jsonData = await response.json();
+                    CAMPUS_POINTS = jsonData.locations;
+                    PREDEFINED_PATHS = jsonData.paths;
                     
                     const locationCount = Object.keys(CAMPUS_POINTS).length;
                     const pathCount = Object.keys(PREDEFINED_PATHS).length;
