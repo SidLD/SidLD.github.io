@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Path Finder</title>
+    <title>NWSSU Map Navigation</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
@@ -19,12 +19,107 @@
             background: #0c0c1a;
             color: #fff;
             overflow-x: hidden;
+            height: 100vh;
+        }
+
+        #home-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0c0c1a 0%, #1a1a3a 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.8s ease;
+        }
+
+        #home-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .logo {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .logo h1 {
+            font-size: 3.5rem;
+            background: linear-gradient(45deg, #4169E1, #6A5ACD, #9370DB);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 20px rgba(100, 149, 237, 0.3);
+        }
+
+        .logo p {
+            font-size: 1.2rem;
+            color: #a0a0d0;
+        }
+
+        .start-button {
+            background: linear-gradient(45deg, #4169E1, #6A5ACD);
+            border: none;
+            color: white;
+            padding: 1.2rem 3rem;
+            font-size: 1.4rem;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 2rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(65, 105, 225, 0.4);
+        }
+
+        .start-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(65, 105, 225, 0.6);
+        }
+
+        .start-button:active {
+            transform: translateY(1px);
+        }
+
+        .loading-progress {
+            margin-top: 2rem;
+            width: 300px;
+            text-align: center;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #4169E1, #6A5ACD);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
+
+        .progress-text {
+            color: #a0a0d0;
+            font-size: 0.9rem;
         }
 
         .container {
             display: flex;
             flex-direction: column;
             min-height: 100vh;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+
+        .container.visible {
+            opacity: 1;
         }
 
         header {
@@ -157,10 +252,10 @@
 
         .controls {
             position: fixed;
-            top: -33.33vh; /* Start off-screen above */
+            top: -33.33vh;
             left: 0;
             width: 100%;
-            height: 33.33vh; /* Cover only 1/3 of the viewport */
+            height: 33.33vh;
             background: linear-gradient(to bottom, #1a1a3a, #0c0c1a);
             border-bottom: 1px solid #2a2a4a;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
@@ -212,6 +307,7 @@
         .dropdown {
             position: relative;
             margin-bottom: 0.8rem;
+            z-index: 1000;
         }
 
         .dropdown-header {
@@ -241,7 +337,7 @@
             max-height: 0;
             opacity: 0;
             transition: all 0.4s ease;
-            z-index: 10;
+            z-index: 1001;
             border: 1px solid #2a2a4a;
         }
 
@@ -342,6 +438,7 @@
             display: flex;
             justify-content: space-between;
             margin-bottom: 0.4rem;
+            font-size: 0.9rem;
         }
 
         .status-item:last-child {
@@ -419,6 +516,29 @@
             transform: none;
         }
 
+        .view-mode {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .view-btn {
+            flex: 1;
+            padding: 0.6rem;
+            background: rgba(50, 50, 80, 0.6);
+            border: 1px solid #2a2a4a;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .view-btn.active {
+            background: #4169E1;
+            box-shadow: 0 0 10px rgba(65, 105, 225, 0.5);
+        }
+
         @media (max-width: 768px) {
             .controls {
                 height: 50vh;
@@ -435,11 +555,33 @@
             .dropdown-header, .btn {
                 padding: 0.7rem;
             }
+            
+            .logo h1 {
+                font-size: 2.5rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Home Screen -->
+    <div id="home-screen">
+        <div class="logo">
+            <h1>NWSSU Map Navigation</h1>
+            <p>Explore your campus in 3D</p>
+        </div>
+        
+        <div class="loading-progress">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-text" id="progress-text">Loading resources... 0%</div>
+        </div>
+        
+        <button class="start-button" id="start-button" disabled>Get Started</button>
+    </div>
+
+    <!-- Main App Container (initially hidden) -->
+    <div class="container" id="app-container">
         <header>
             <div class="header-top">
                 <button class="burger-menu" id="burger-menu">☰</button>
@@ -482,7 +624,7 @@
                         <div class="dropdown-options" id="to-dropdown-options"></div>
                     </div>
                     
-                    <button id="generate-path" class="generate-path-btn" disabled>Generate Path</button>
+                    <button id="start-path" class="generate-path-btn" disabled>Generate Path</button>
                     
                     <div class="status-bar" id="path-status-bar">
                         <div class="status-item">
@@ -499,9 +641,14 @@
                 <div class="control-group">
                     <h2>Navigation</h2>
                     <div class="btn-group">
-                        <button id="walk-path" class="btn success" disabled>Walk Path</button>
+                        <button id="restart-walk" class="btn success" disabled>Restart</button>
                         <button id="reset-view" class="btn">Reset View</button>
                         <button id="fly-mode" class="btn">Fly Mode: Off</button>
+                    </div>
+                    
+                    <div class="view-mode">
+                        <div class="view-btn active" id="third-person-btn">3rd Person</div>
+                        <div class="view-btn" id="first-person-btn">1st Person</div>
                     </div>
                     
                     <div class="status-bar" id="walk-status-bar">
@@ -528,7 +675,7 @@
     </div>
 
     <script type="module">
-        // Main variables
+        // Global variables
         let scene, camera, renderer, controls;
         let model = null;
         let pathLine = null;
@@ -541,6 +688,7 @@
         let isFlyMode = false;
         let personDirection = new THREE.Vector3(0, 0, 1);
         let cameraFollowing = false;
+        let isFirstPersonView = false;
         
         // JSON data variables
         let CAMPUS_POINTS = {};
@@ -555,6 +703,169 @@
         let velocity = new THREE.Vector3();
         let direction = new THREE.Vector3();
         let speed = 5.0;
+        
+        // Resource tracking
+        let resourcesLoaded = 0;
+        let totalResources = 2; // JSON data and model
+        let preloadedModel = null; // Store the preloaded model
+
+        // Preload resources
+        async function preloadResources() {
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            const startButton = document.getElementById('start-button');
+            
+            try {
+                // Update progress
+                updateProgress(10, 'Loading path data...');
+                
+                // Load JSON data
+                await loadJSONData();
+                resourceLoaded();
+                
+                // Update progress
+                updateProgress(40, 'Loading campus model...');
+                
+                // Load the model but don't add to scene yet
+                preloadedModel = await loadModel();
+                resourceLoaded();
+                
+                // Final update
+                updateProgress(100, 'Ready!');
+                
+                // Enable the start button
+                startButton.disabled = false;
+                
+            } catch (error) {
+                console.error('Error preloading resources:', error);
+                progressText.textContent = 'Error loading resources. Using fallback data.';
+                progressText.style.color = '#ff6b6b';
+                
+                // Enable the start button even if there was an error
+                startButton.disabled = false;
+            }
+        }
+        
+        function updateProgress(percent, message) {
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            
+            progressFill.style.width = percent + '%';
+            progressText.textContent = message + ' ' + percent + '%';
+        }
+        
+        function resourceLoaded() {
+            resourcesLoaded++;
+            const percent = 10 + (resourcesLoaded / totalResources) * 90;
+            updateProgress(Math.round(percent), 'Loading resources...');
+        }
+        
+        // Initialize the home screen
+        function initHomeScreen() {
+            const startButton = document.getElementById('start-button');
+            const homeScreen = document.getElementById('home-screen');
+            const appContainer = document.getElementById('app-container');
+            
+            startButton.addEventListener('click', () => {
+                // Fade out home screen
+                homeScreen.classList.add('fade-out');
+                
+                // Show app container after a delay
+                setTimeout(() => {
+                    appContainer.classList.add('visible');
+                    initApp();
+                }, 800);
+            });
+            
+            // Start preloading resources
+            preloadResources();
+        }
+        
+        // Initialize the app
+        function initApp() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0c0c1a);
+            scene.fog = new THREE.Fog(0x0c0c1a, 10, 50);
+            
+            // Create camera - position it at the specified coordinates
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0.7578, 4.6168, -6.4757);
+            
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true,
+                alpha: true,
+                logarithmicDepthBuffer: true
+            });
+            
+            const container = document.getElementById('canvas-container');
+            
+            renderer.setSize(container.offsetWidth, container.offsetHeight);
+            renderer.shadowMap.enabled = false;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+            
+            // Add grid helper
+            const gridHelper = new THREE.GridHelper(40, 20, 0x444466, 0x222244);
+            gridHelper.position.y = -0.01;
+            scene.add(gridHelper);
+            
+            // Lighting setup
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
+            directionalLight.position.set(20, 30, 20);
+            scene.add(directionalLight);
+            
+            const fillLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            fillLight.position.set(-20, 20, 20);
+            scene.add(fillLight);
+            
+            // Add the preloaded model to the scene if available
+            if (preloadedModel) {
+                scene.add(preloadedModel);
+                model = preloadedModel;
+            } else {
+                // Create a placeholder model if preloading failed
+                createPlaceholderModel();
+            }
+            
+            // Add orbit controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.maxDistance = 150;
+            controls.minDistance = 1; // Allow getting much closer
+            controls.maxPolarAngle = Math.PI / 1.5;
+            
+            // Set the initial target
+            controls.target.set(12.8938, 2.2596, -5.5850);
+            controls.update();
+            
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize, false);
+            
+            // Initialize keyboard controls for fly mode
+            initKeyboardControls();
+            
+            // Initialize UI components
+            initDrawer();
+            
+            // Create person model
+            createPersonModel();
+            
+            // Initialize UI after data is loaded
+            initUI();
+            
+            // Start animation loop
+            animate();
+            
+            // Hide the loading indicator
+            document.getElementById('loading').classList.add('hidden');
+        }
         
         // Initialize drawer functionality
         function initDrawer() {
@@ -588,82 +899,6 @@
                 }
             });
         }
-
-        // Initialize the scene
-        async function init() {
-            // Create scene
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0c0c1a);
-            scene.fog = new THREE.Fog(0x0c0c1a, 10, 50);
-            
-            // Create camera - position it much closer to the scene
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 3, 5); // Much closer to the scene
-            
-            // Create renderer
-            renderer = new THREE.WebGLRenderer({ 
-                antialias: true,
-                alpha: true,
-                logarithmicDepthBuffer: true
-            });
-            
-            const container = document.getElementById('canvas-container');
-            
-            renderer.setSize(container.offsetWidth, container.offsetHeight);
-            renderer.shadowMap.enabled = false;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            container.appendChild(renderer.domElement);
-            
-            // Add grid helper
-            const gridHelper = new THREE.GridHelper(40, 20, 0x444466, 0x222244);
-            gridHelper.position.y = -0.01;
-            scene.add(gridHelper);
-            
-            // Lighting setup
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
-            scene.add(ambientLight);
-            
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
-            directionalLight.position.set(20, 30, 20);
-            scene.add(directionalLight);
-            
-            const fillLight = new THREE.DirectionalLight(0xffffff, 1.5);
-            fillLight.position.set(-20, 20, 20);
-            scene.add(fillLight);
-            
-            // Add orbit controls
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-            controls.screenSpacePanning = false;
-            controls.maxDistance = 150;
-            controls.minDistance = 1; // Allow getting much closer
-            controls.maxPolarAngle = Math.PI / 1.5;
-            
-            controls.target.set(0, 0, 0);
-            controls.update();
-            
-            // Handle window resize
-            window.addEventListener('resize', onWindowResize, false);
-            
-            // Initialize keyboard controls for fly mode
-            initKeyboardControls();
-            
-            // Initialize UI components
-            initDrawer();
-            
-            // Create person model (original size)
-            createPersonModel();
-            
-            // Load JSON data first
-            await loadJSONData();
-            
-            // Load the model
-            await loadModel();
-            
-            // Initialize UI after data is loaded
-            initUI();
-        }
         
         // Initialize keyboard controls for fly mode
         function initKeyboardControls() {
@@ -696,8 +931,6 @@
         
         async function loadJSONData() {
             try {
-                updateLoadingMessage('Loading path data...');
-                
                 // Try to load from path.json
                 const response = await fetch('path.json');
                 if (!response.ok) {
@@ -708,7 +941,6 @@
                 CAMPUS_POINTS = jsonData.locations;
                 PREDEFINED_PATHS = jsonData.paths;
                 
-                updateLoadingMessage('Loading campus model...');
             } catch (error) {
                 console.error('Error loading JSON data:', error);
                 
@@ -737,15 +969,6 @@
                         ]
                     }
                 };
-                
-                updateLoadingMessage('Using sample data...');
-            }
-        }
-        
-        function updateLoadingMessage(message) {
-            const loadingMessage = document.getElementById('loading-message');
-            if (loadingMessage) {
-                loadingMessage.textContent = message;
             }
         }
         
@@ -771,6 +994,11 @@
                     
                     // Enable generate path button if both points are selected
                     updateGeneratePathButton();
+                    
+                    // Navigate to lookout when both points are selected
+                    if (selectedFromPoint && selectedToPoint) {
+                        navigateToLookout();
+                    }
                 });
                 fromOptions.appendChild(fromOption);
                 
@@ -790,6 +1018,11 @@
                     
                     // Enable generate path button if both points are selected
                     updateGeneratePathButton();
+                    
+                    // Navigate to lookout when both points are selected
+                    if (selectedFromPoint && selectedToPoint) {
+                        navigateToLookout();
+                    }
                 });
                 toOptions.appendChild(toOption);
             });
@@ -803,14 +1036,38 @@
             });
             
             // Button events
-            document.getElementById('generate-path').addEventListener('click', generatePath);
-            document.getElementById('walk-path').addEventListener('click', startWalking);
+            document.getElementById('start-path').addEventListener('click', startPath);
+            document.getElementById('restart-walk').addEventListener('click', restartWalk);
             document.getElementById('reset-view').addEventListener('click', resetView);
             document.getElementById('fly-mode').addEventListener('click', toggleFlyMode);
+            
+            // View mode buttons
+            document.getElementById('first-person-btn').addEventListener('click', () => {
+                toggleViewMode(true);
+            });
+            
+            document.getElementById('third-person-btn').addEventListener('click', () => {
+                toggleViewMode(false);
+            });
+        }
+        
+        function toggleViewMode(firstPerson) {
+            isFirstPersonView = firstPerson;
+            
+            const firstPersonBtn = document.getElementById('first-person-btn');
+            const thirdPersonBtn = document.getElementById('third-person-btn');
+            
+            if (firstPerson) {
+                firstPersonBtn.classList.add('active');
+                thirdPersonBtn.classList.remove('active');
+            } else {
+                firstPersonBtn.classList.remove('active');
+                thirdPersonBtn.classList.add('active');
+            }
         }
         
         function updateGeneratePathButton() {
-            const generateBtn = document.getElementById('generate-path');
+            const generateBtn = document.getElementById('start-path');
             if (selectedFromPoint && selectedToPoint) {
                 generateBtn.disabled = false;
             } else {
@@ -887,6 +1144,21 @@
             scene.add(personModel);
         }
         
+        // Navigate to lookout when both points are selected
+        function navigateToLookout() {
+            if (!selectedFromPoint || !CAMPUS_POINTS[selectedFromPoint]) return;
+            
+            const lookoutPoint = CAMPUS_POINTS[selectedFromPoint];
+            const targetPosition = new THREE.Vector3(lookoutPoint.x, lookoutPoint.y + 2, lookoutPoint.z + 5);
+            const lookAtPosition = new THREE.Vector3(lookoutPoint.x, lookoutPoint.y, lookoutPoint.z);
+            
+            animateCamera(
+                [targetPosition.x, targetPosition.y, targetPosition.z],
+                [lookAtPosition.x, lookAtPosition.y, lookAtPosition.z],
+                1000
+            );
+        }
+        
         // Camera animation function
         function animateCamera(targetPosition, targetLookAt, duration = 1000) {
             return new Promise((resolve) => {
@@ -920,7 +1192,7 @@
             });
         }
 
-        function generatePath() {
+        function startPath() {
             if (!selectedFromPoint || !selectedToPoint) {
                 alert('Please select both start and end locations');
                 return;
@@ -1027,30 +1299,30 @@
                     [lookAtPoint.x, lookAtPoint.y, lookAtPoint.z],
                     1000
                 ).then(() => {
-                    // Enable walk button after camera animation completes
-                    document.getElementById('walk-path').disabled = false;
+                    // Enable restart button after camera animation completes
+                    document.getElementById('restart-walk').disabled = false;
                     document.getElementById('walk-status-bar').style.display = 'block';
+                    
+                    // Automatically start walking
+                    startWalking();
                 });
             }
         }
 
-        function clearPath() {
-            isWalking = false;
-            walkingProgress = 0;
-            cameraFollowing = false;
-            
-            if (pathLine) {
-                scene.remove(pathLine);
-                pathLine = null;
+        function restartWalk() {
+            if (!currentPath || currentPath.length === 0) {
+                alert('Please generate a path first');
+                return;
             }
             
-            personModel.visible = false;
+            isWalking = false;
+            walkingProgress = 0;
             
-            currentPath = null;
-            document.getElementById('walk-progress').textContent = '0%';
-            document.getElementById('path-status').textContent = 'No path shown';
-            document.getElementById('path-distance').textContent = '0 meters';
-            document.getElementById('walk-path').disabled = true;
+            // Reset person position to start
+            personModel.position.copy(currentPath[0]);
+            
+            // Start walking again
+            startWalking();
         }
 
         function startWalking() {
@@ -1068,25 +1340,45 @@
             }
         }
         
+        function clearPath() {
+            isWalking = false;
+            walkingProgress = 0;
+            cameraFollowing = false;
+            
+            if (pathLine) {
+                scene.remove(pathLine);
+                pathLine = null;
+            }
+            
+            personModel.visible = false;
+            
+            currentPath = null;
+            document.getElementById('walk-progress').textContent = '0%';
+            document.getElementById('path-status').textContent = 'No path shown';
+            document.getElementById('path-distance').textContent = '0 meters';
+            document.getElementById('restart-walk').disabled = true;
+        }
+
         function resetView() {
             clearPath();
-            camera.position.set(0, 2, 5); // Much closer initial position
-            controls.target.set(0, 0, 0);
+            // Reset to the specified coordinates
+            camera.position.set(0.7578, 4.6168, -6.4757);
+            controls.target.set(12.8938, 2.2596, -5.5850);
             controls.update();
             document.getElementById('path-status-bar').style.display = 'none';
             document.getElementById('walk-status-bar').style.display = 'none';
         }
 
-        // Load model
+        // Load model with optimized loading (but don't add to scene)
         async function loadModel() {
-            return new Promise((resolve) => {
+            return new Promise((resolve, reject) => {
                 const loader = new THREE.GLTFLoader();
                 const modelUrl = 'nwssu.glb';
                 
                 loader.load(
                     modelUrl,
                     (gltf) => {
-                        model = gltf.scene;
+                        const model = gltf.scene;
                         
                         const bbox = new THREE.Box3().setFromObject(model);
                         const size = bbox.getSize(new THREE.Vector3());
@@ -1102,25 +1394,23 @@
                             }
                         });
                         
-                        scene.add(model);
-                        controls.target.set(0, 0, 0);
-                        controls.update();
-                        
-                        document.getElementById('loading').classList.add('hidden');
-                        renderer.render(scene, camera);
-                        resolve();
+                        resolve(model);
                     },
                     (xhr) => {
                         const percent = Math.round((xhr.loaded / xhr.total) * 100);
-                        document.getElementById('loading-submessage').textContent = `Loading: ${percent}%`;
+                        const progressFill = document.getElementById('progress-fill');
+                        const progressText = document.getElementById('progress-text');
+                        
+                        // Update progress to be between 40% and 100% for model loading
+                        const overallPercent = 40 + (percent * 0.6);
+                        progressFill.style.width = `${overallPercent}%`;
+                        progressText.textContent = `Loading model: ${percent}%`;
                     },
                     (error) => {
                         console.error('Error loading model:', error);
-                        document.getElementById('loading-submessage').textContent = 'Error loading model, using placeholder';
-                        
-                        // Create a placeholder model
-                        createPlaceholderModel();
-                        resolve();
+                        // Create a placeholder model since the main model failed to load
+                        const placeholder = createPlaceholderModel();
+                        resolve(placeholder);
                     }
                 );
             });
@@ -1158,11 +1448,7 @@
             building4.position.set(-7, 1, -3);
             campusGroup.add(building4);
             
-            scene.add(campusGroup);
-            model = campusGroup;
-            
-            document.getElementById('loading').classList.add('hidden');
-            renderer.render(scene, camera);
+            return campusGroup;
         }
         
         function onWindowResize() {
@@ -1193,26 +1479,43 @@
         function updateCameraFollow() {
             if (!cameraFollowing || !isWalking || isFlyMode) return;
             
-            // Calculate camera position behind the person
-            const cameraDistance = 0.8; // Even closer follow distance
-            const cameraHeight = 0.15;
-            
-            // Calculate offset based on person's direction
-            const cameraOffset = new THREE.Vector3(
-                -personDirection.x * cameraDistance,
-                cameraHeight,
-                -personDirection.z * cameraDistance
-            );
-            
-            const targetPosition = personModel.position.clone();
-            targetPosition.y += 0.3; // Look at the person's head
-            
-            const cameraPosition = personModel.position.clone().add(cameraOffset);
-            
-            // Smoothly move the camera
-            camera.position.lerp(cameraPosition, 0.1);
-            controls.target.lerp(targetPosition, 0.1);
-            controls.update();
+            if (isFirstPersonView) {
+                // First-person view: position camera at person's eye level
+                const eyeLevel = 0.25; // Height of eyes from ground
+                const cameraOffset = new THREE.Vector3(0, eyeLevel, 0);
+                
+                // Set camera to person's position with eye level offset
+                camera.position.copy(personModel.position).add(cameraOffset);
+                
+                // Look in the direction the person is moving
+                const lookAtPoint = personModel.position.clone().add(personDirection);
+                camera.lookAt(lookAtPoint);
+                
+                // Update controls target to maintain smooth camera movement
+                controls.target.copy(lookAtPoint);
+                controls.update();
+            } else {
+                // Third-person view: position camera behind the person
+                const cameraDistance = 0.8;
+                const cameraHeight = 0.15;
+                
+                // Calculate offset based on person's direction
+                const cameraOffset = new THREE.Vector3(
+                    -personDirection.x * cameraDistance,
+                    cameraHeight,
+                    -personDirection.z * cameraDistance
+                );
+                
+                const targetPosition = personModel.position.clone();
+                targetPosition.y += 0.3; // Look at the person's head
+                
+                const cameraPosition = personModel.position.clone().add(cameraOffset);
+                
+                // Smoothly move the camera
+                camera.position.lerp(cameraPosition, 0.1);
+                controls.target.lerp(targetPosition, 0.1);
+                controls.update();
+            }
         }
         
         function animate() {
@@ -1266,8 +1569,8 @@
             renderer.render(scene, camera);
         }
         
-        init();
-        animate();
+        // Start with the home screen
+        initHomeScreen();
     </script>
 </body>
 </html>
