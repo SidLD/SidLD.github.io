@@ -3,10 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NWSSU Map Navigation</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <title>Campus Path Viewer</title>
     <style>
         * {
             margin: 0;
@@ -566,7 +563,7 @@
     <!-- Home Screen -->
     <div id="home-screen">
         <div class="logo">
-            <h1>NWSSU Map Navigation</h1>
+            <h1>Map Path Finder</h1>
             <p>Explore your campus in 3D</p>
         </div>
         
@@ -674,7 +671,12 @@
         </div>
     </div>
 
-    <script type="module">
+    <!-- Using UMD versions for compatibility -->
+    <script src="./threejs/three.min.js"></script>
+    <script src="./threejs//GLTFLoader.min.js"></script>
+    <script src="./threejs/OrbitControls.js"></script>
+
+    <script>
         // Global variables
         let scene, camera, renderer, controls;
         let model = null;
@@ -1095,48 +1097,51 @@
             }
         }
         
-        // Create person model (original size)
+        // Create person model - Adjusted to be smaller
         function createPersonModel() {
             const personGroup = new THREE.Group();
             
+            // Scale factor to make the person smaller
+            const scaleFactor = 0.5;
+            
             // Body
-            const bodyGeometry = new THREE.CylinderGeometry(0.03, 0.04, 0.12, 8);
+            const bodyGeometry = new THREE.CylinderGeometry(0.03 * scaleFactor, 0.04 * scaleFactor, 0.12 * scaleFactor, 8);
             const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x4169E1 });
             const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-            body.position.y = 0.06;
+            body.position.y = 0.06 * scaleFactor;
             personGroup.add(body);
             
             // Head
-            const headGeometry = new THREE.SphereGeometry(0.025, 8, 6);
+            const headGeometry = new THREE.SphereGeometry(0.025 * scaleFactor, 8, 6);
             const headMaterial = new THREE.MeshLambertMaterial({ color: 0xFFDBB5 });
             const head = new THREE.Mesh(headGeometry, headMaterial);
-            head.position.y = 0.145;
+            head.position.y = 0.145 * scaleFactor;
             personGroup.add(head);
             
             // Arms
-            const armGeometry = new THREE.CylinderGeometry(0.008, 0.008, 0.08, 6);
+            const armGeometry = new THREE.CylinderGeometry(0.008 * scaleFactor, 0.008 * scaleFactor, 0.08 * scaleFactor, 6);
             const armMaterial = new THREE.MeshLambertMaterial({ color: 0xFFDBB5 });
             
             const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-            leftArm.position.set(-0.045, 0.08, 0);
+            leftArm.position.set(-0.045 * scaleFactor, 0.08 * scaleFactor, 0);
             leftArm.rotation.z = 0.3;
             personGroup.add(leftArm);
             
             const rightArm = new THREE.Mesh(armGeometry, armMaterial);
-            rightArm.position.set(0.045, 0.08, 0);
+            rightArm.position.set(0.045 * scaleFactor, 0.08 * scaleFactor, 0);
             rightArm.rotation.z = -0.3;
             personGroup.add(rightArm);
             
             // Legs
-            const legGeometry = new THREE.CylinderGeometry(0.01, 0.01, 0.08, 6);
+            const legGeometry = new THREE.CylinderGeometry(0.01 * scaleFactor, 0.01 * scaleFactor, 0.08 * scaleFactor, 6);
             const legMaterial = new THREE.MeshLambertMaterial({ color: 0x2F4F4F });
             
             const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
-            leftLeg.position.set(-0.015, -0.04, 0);
+            leftLeg.position.set(-0.015 * scaleFactor, -0.04 * scaleFactor, 0);
             personGroup.add(leftLeg);
             
             const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
-            rightLeg.position.set(0.015, -0.04, 0);
+            rightLeg.position.set(0.015 * scaleFactor, -0.04 * scaleFactor, 0);
             personGroup.add(rightLeg);
             
             personModel = personGroup;
@@ -1372,47 +1377,54 @@
         // Load model with optimized loading (but don't add to scene)
         async function loadModel() {
             return new Promise((resolve, reject) => {
-                const loader = new THREE.GLTFLoader();
-                const modelUrl = 'nwssu.glb';
-                
-                loader.load(
-                    modelUrl,
-                    (gltf) => {
-                        const model = gltf.scene;
-                        
-                        const bbox = new THREE.Box3().setFromObject(model);
-                        const size = bbox.getSize(new THREE.Vector3());
-                        
-                        const maxDimension = Math.max(size.x, size.y, size.z);
-                        const scale = 50 / maxDimension;
-                        model.scale.setScalar(scale);
-                        
-                        model.traverse((child) => {
-                            if (child.isMesh) {
-                                child.castShadow = true;
-                                child.receiveShadow = true;
-                            }
-                        });
-                        
-                        resolve(model);
-                    },
-                    (xhr) => {
-                        const percent = Math.round((xhr.loaded / xhr.total) * 100);
-                        const progressFill = document.getElementById('progress-fill');
-                        const progressText = document.getElementById('progress-text');
-                        
-                        // Update progress to be between 40% and 100% for model loading
-                        const overallPercent = 40 + (percent * 0.6);
-                        progressFill.style.width = `${overallPercent}%`;
-                        progressText.textContent = `Loading model: ${percent}%`;
-                    },
-                    (error) => {
-                        console.error('Error loading model:', error);
-                        // Create a placeholder model since the main model failed to load
-                        const placeholder = createPlaceholderModel();
-                        resolve(placeholder);
-                    }
-                );
+                try {
+                    const loader = new THREE.GLTFLoader();
+                    const modelUrl = 'nwssu.glb';
+                    
+                    loader.load(
+                        modelUrl,
+                        (gltf) => {
+                            const model = gltf.scene;
+                            
+                            const bbox = new THREE.Box3().setFromObject(model);
+                            const size = bbox.getSize(new THREE.Vector3());
+                            
+                            const maxDimension = Math.max(size.x, size.y, size.z);
+                            const scale = 50 / maxDimension;
+                            model.scale.setScalar(scale);
+                            
+                            model.traverse((child) => {
+                                if (child.isMesh) {
+                                    child.castShadow = true;
+                                    child.receiveShadow = true;
+                                }
+                            });
+                            
+                            resolve(model);
+                        },
+                        (xhr) => {
+                            const percent = Math.round((xhr.loaded / xhr.total) * 100);
+                            const progressFill = document.getElementById('progress-fill');
+                            const progressText = document.getElementById('progress-text');
+                            
+                            // Update progress to be between 40% and 100% for model loading
+                            const overallPercent = 40 + (percent * 0.6);
+                            progressFill.style.width = `${overallPercent}%`;
+                            progressText.textContent = `Loading model: ${percent}%`;
+                        },
+                        (error) => {
+                            console.error('Error loading model:', error);
+                            // Create a placeholder model since the main model failed to load
+                            const placeholder = createPlaceholderModel();
+                            resolve(placeholder);
+                        }
+                    );
+                } catch (error) {
+                    console.error('Exception in model loading:', error);
+                    // Create a placeholder model if there's an exception
+                    const placeholder = createPlaceholderModel();
+                    resolve(placeholder);
+                }
             });
         }
         
