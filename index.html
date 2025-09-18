@@ -1376,79 +1376,77 @@
 
         // Load model with optimized loading (but don't add to scene)
         async function loadModel() {
-    return new Promise((resolve, reject) => {
-        try {
-            const loader = new THREE.GLTFLoader();
-            
-            // Try multiple CDN options for GLB file
-            const modelUrls = [
-                './nwssu.glb', // Local path first
-                'nwssu.glb',   // Alternative local path
-                'https://cdn.jsdelivr.net/gh/SidLD/SidLD.github.io@main/nwssu.glb', // JSDelivr CDN
-                'https://raw.githubusercontent.com/SidLD/SidLD.github.io/main/nwssu.glb' // Raw GitHub (fallback)
-            ];
-            
-            const tryLoadModel = (urlIndex = 0) => {
-                if (urlIndex >= modelUrls.length) {
-                    console.error('All model URLs failed, creating placeholder');
-                    const placeholder = createPlaceholderModel();
-                    resolve(placeholder);
-                    return;
-                }
-                
-                const currentUrl = modelUrls[urlIndex];
-                console.log(`Trying to load model from: ${currentUrl}`);
-                
-                loader.load(
-                    currentUrl,
-                    (gltf) => {
-                        const model = gltf.scene;
-                        
-                        const bbox = new THREE.Box3().setFromObject(model);
-                        const size = bbox.getSize(new THREE.Vector3());
-                        
-                        const maxDimension = Math.max(size.x, size.y, size.z);
-                        const scale = 50 / maxDimension;
-                        model.scale.setScalar(scale);
-                        
-                        model.traverse((child) => {
-                            if (child.isMesh) {
-                                child.castShadow = true;
-                                child.receiveShadow = true;
-                            }
-                        });
-                        
-                        resolve(model);
-                    },
-                    (xhr) => {
-                        const percent = Math.round((xhr.loaded / xhr.total) * 100);
-                        const progressFill = document.getElementById('progress-fill');
-                        const progressText = document.getElementById('progress-text');
-                        
-                        // Update progress to be between 40% and 100% for model loading
-                        const overallPercent = 40 + (percent * 0.6);
-                        progressFill.style.width = `${overallPercent}%`;
-                        progressText.textContent = `Loading model: ${percent}%`;
-                    },
-                    (error) => {
-                        console.error(`Error loading model from ${currentUrl}:`, error);
-                        // Try next URL
-                        tryLoadModel(urlIndex + 1);
-                    }
-                );
-            };
-            
-            // Start trying to load the model
-            tryLoadModel(0);
-            
-        } catch (error) {
-            console.error('Exception in model loading:', error);
-            // Create a placeholder model if there's an exception
-            const placeholder = createPlaceholderModel();
-            resolve(placeholder);
+  return new Promise((resolve, reject) => {
+    try {
+      const loader = new THREE.GLTFLoader();
+
+      // Wrap GitHub release link with proxy
+      const modelUrls = [
+        "https://corsproxy.io/?" + encodeURIComponent(
+          "https://github.com/SidLD/SidLD.github.io/releases/download/nwssu/nwssu.glb"
+        ),
+      ];
+
+      const tryLoadModel = (urlIndex = 0) => {
+        if (urlIndex >= modelUrls.length) {
+          console.error("All model URLs failed, creating placeholder");
+          const placeholder = createPlaceholderModel();
+          resolve(placeholder);
+          return;
         }
-    });
+
+        const currentUrl = modelUrls[urlIndex];
+        console.log(`Trying to load model from: ${currentUrl}`);
+
+        loader.load(
+          currentUrl,
+          (gltf) => {
+            const model = gltf.scene;
+
+            // Scale to fit
+            const bbox = new THREE.Box3().setFromObject(model);
+            const size = bbox.getSize(new THREE.Vector3());
+            const maxDimension = Math.max(size.x, size.y, size.z);
+            const scale = 50 / maxDimension;
+            model.scale.setScalar(scale);
+
+            model.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+
+            resolve(model);
+          },
+          (xhr) => {
+            if (xhr.total) {
+              const percent = Math.round((xhr.loaded / xhr.total) * 100);
+              const progressFill = document.getElementById("progress-fill");
+              const progressText = document.getElementById("progress-text");
+
+              const overallPercent = 40 + (percent * 0.6);
+              if (progressFill) progressFill.style.width = `${overallPercent}%`;
+              if (progressText) progressText.textContent = `Loading model: ${percent}%`;
+            }
+          },
+          (error) => {
+            console.error(`Error loading model from ${currentUrl}:`, error);
+            tryLoadModel(urlIndex + 1);
+          }
+        );
+      };
+
+      tryLoadModel(0);
+
+    } catch (error) {
+      console.error("Exception in model loading:", error);
+      const placeholder = createPlaceholderModel();
+      resolve(placeholder);
+    }
+  });
 }
+
         function createPlaceholderModel() {
             const campusGroup = new THREE.Group();
             
