@@ -124,35 +124,25 @@
             padding: 1rem;
             border-bottom: 1px solid #2a2a4a;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .header-top {
+        .header-controls {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
+            gap: 1rem;
+            flex: 1;
         }
 
-        .burger-menu {
-            background: #4169E1;
-            border: none;
-            color: white;
-            padding: 0.5rem 0.8rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1.2rem;
-            transition: background 0.3s;
-        }
-
-        .burger-menu:hover {
-            background: #5a7de9;
+        .header-title {
+            flex: 1;
+            text-align: right;
         }
 
         h1 {
             font-size: 1.8rem;
-            text-align: center;
-            flex-grow: 1;
-            margin: 0 1rem;
             color: #fff;
             text-shadow: 0 0 10px rgba(100, 149, 237, 0.5);
         }
@@ -161,6 +151,7 @@
             text-align: center;
             color: #a0a0d0;
             font-size: 0.9rem;
+            display: none;
         }
 
         .content {
@@ -228,88 +219,9 @@
             font-size: 0.9rem;
         }
 
-        /* Top drawer styles */
-        .drawer-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 998;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s, visibility 0.3s;
-        }
-
-        .drawer-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .controls {
-            position: fixed;
-            top: -33.33vh;
-            left: 0;
-            width: 100%;
-            height: 33.33vh;
-            background: linear-gradient(to bottom, #1a1a3a, #0c0c1a);
-            border-bottom: 1px solid #2a2a4a;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            padding: 1.5rem;
-            overflow-y: auto;
-            transition: top 0.4s ease;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .controls.active {
-            top: 0;
-        }
-
-        .close-drawer {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.5rem;
-            cursor: pointer;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            transition: background 0.3s;
-        }
-
-        .close-drawer:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .control-group {
-            margin-bottom: 1rem;
-        }
-
-        .control-group h2 {
-            font-size: 1.2rem;
-            margin-bottom: 0.8rem;
-            color: #4169E1;
-        }
-
-        .dropdown-container {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
         .dropdown {
             position: relative;
-            flex: 1;
+            min-width: 150px;
             z-index: 1000;
         }
 
@@ -317,12 +229,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.8rem;
+            padding: 0.6rem;
             background: rgba(50, 50, 80, 0.6);
             border-radius: 8px;
             cursor: pointer;
             transition: background 0.3s;
-            min-height: 44px; /* Better for touch */
+            min-height: 36px;
+            font-size: 0.9rem;
         }
 
         .dropdown-header:hover {
@@ -352,13 +265,14 @@
         }
 
         .dropdown-option {
-            padding: 0.8rem;
+            padding: 0.6rem;
             cursor: pointer;
             transition: background 0.2s;
             border-bottom: 1px solid #2a2a4a;
-            min-height: 44px; /* Better for touch */
+            min-height: 36px;
             display: flex;
             align-items: center;
+            font-size: 0.9rem;
         }
 
         .dropdown-option:hover {
@@ -374,15 +288,8 @@
             border-bottom: none;
         }
 
-        .btn-group {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 0.8rem;
-        }
-
         .btn {
-            flex: 1;
-            padding: 0.8rem;
+            padding: 0.6rem 1rem;
             background: rgba(50, 50, 80, 0.8);
             border: 1px solid #2a2a4a;
             border-radius: 6px;
@@ -390,10 +297,11 @@
             cursor: pointer;
             transition: all 0.3s;
             font-weight: 500;
-            min-height: 44px; /* Better for touch */
+            min-height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 0.9rem;
         }
 
         .btn:hover {
@@ -409,22 +317,6 @@
             background: #5a7de9;
         }
 
-        .btn.danger {
-            background: rgba(200, 50, 50, 0.7);
-        }
-
-        .btn.danger:hover {
-            background: rgba(220, 70, 70, 0.9);
-        }
-
-        .btn.success {
-            background: rgba(50, 200, 50, 0.7);
-        }
-
-        .btn.success:hover {
-            background: rgba(70, 220, 70, 0.9);
-        }
-
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -436,43 +328,54 @@
             transform: none;
         }
 
-        .status-bar {
-            background: rgba(30, 30, 50, 0.7);
+        .generate-path-btn {
+            padding: 0.6rem 1rem;
+            background: #4169E1;
+            border: none;
             border-radius: 6px;
-            padding: 0.8rem;
-            margin-bottom: 0.8rem;
-            display: none;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
             border: 1px solid #2a2a4a;
-        }
-
-        .status-item {
+            min-height: 36px;
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.4rem;
+            align-items: center;
+            justify-content: center;
             font-size: 0.9rem;
         }
 
-        .status-item:last-child {
-            margin-bottom: 0;
+        .generate-path-btn:hover {
+            background: #5a7de9;
+            transform: translateY(-2px);
         }
 
-        .status-label {
-            font-weight: bold;
-            color: #a0a0d0;
+        .generate-path-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
         }
 
-        .status-value {
-            color: #fff;
-            font-weight: 500;
+        .view-selector {
+            display: flex;
+            gap: 0.3rem;
         }
 
-        .path-info {
-            background: rgba(40, 40, 65, 0.6);
-            border-radius: 6px;
-            padding: 0.8rem;
-            font-size: 0.85rem;
-            margin-top: auto;
+        .view-btn {
+            padding: 0.5rem 0.8rem;
+            background: rgba(50, 50, 80, 0.6);
             border: 1px solid #2a2a4a;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+            font-size: 0.8rem;
+        }
+
+        .view-btn.active {
+            background: #4169E1;
+            box-shadow: 0 0 10px rgba(65, 105, 225, 0.5);
         }
 
         .location-highlight {
@@ -502,78 +405,24 @@
             border-radius: 50%;
         }
 
-        .generate-path-btn {
-            width: 100%;
-            padding: 1rem;
-            background: #4169E1;
-            border: none;
-            border-radius: 6px;
-            color: white;
-            cursor: pointer;
-            margin-top: 1rem;
-            font-weight: bold;
-            transition: background 0.3s;
-            border: 1px solid #2a2a4a;
-            min-height: 50px; /* Better for touch */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .generate-path-btn:hover {
-            background: #5a7de9;
-            transform: translateY(-2px);
-        }
-
-        .generate-path-btn:disabled {
-            background: #555;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .view-mode {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-
-        .view-btn {
-            flex: 1;
-            padding: 0.6rem;
-            background: rgba(50, 50, 80, 0.6);
-            border: 1px solid #2a2a4a;
-            border-radius: 4px;
-            color: white;
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.3s;
-        }
-
-        .view-btn.active {
-            background: #4169E1;
-            box-shadow: 0 0 10px rgba(65, 105, 225, 0.5);
-        }
-
         @media (max-width: 768px) {
-            .controls {
-                height: 50vh;
-            }
-            
-            .dropdown-container {
+            header {
                 flex-direction: column;
                 gap: 0.8rem;
             }
             
-            .btn-group {
-                flex-direction: column;
+            .header-controls {
+                width: 100%;
+                flex-wrap: wrap;
             }
             
-            .control-group {
-                padding: 0.8rem;
+            .header-title {
+                text-align: center;
+                width: 100%;
             }
             
-            .dropdown-header, .btn {
-                padding: 0.7rem;
+            .dropdown {
+                min-width: 120px;
             }
             
             .logo h1 {
@@ -603,11 +452,34 @@
     <!-- Main App Container (initially hidden) -->
     <div class="container" id="app-container">
         <header>
-            <div class="header-top">
-                <button class="burger-menu" id="burger-menu">☰</button>
+            <div class="header-controls">
+                <div class="dropdown" id="from-dropdown">
+                    <div class="dropdown-header">
+                        <span id="from-dropdown-text">Start</span>
+                        <span>▼</span>
+                    </div>
+                    <div class="dropdown-options" id="from-dropdown-options"></div>
+                </div>
+                
+                <div class="dropdown" id="to-dropdown">
+                    <div class="dropdown-header">
+                        <span id="to-dropdown-text">End</span>
+                        <span>▼</span>
+                    </div>
+                    <div class="dropdown-options" id="to-dropdown-options"></div>
+                </div>
+                
+                <button id="start-path" class="generate-path-btn" disabled>Go</button>
+                
+                <div class="view-selector">
+                    <button class="view-btn active" data-view="first-person">1st Person</button>
+                    <button class="view-btn" data-view="third-person">3rd Person</button>
+                </div>
+            </div>
+            
+            <div class="header-title">
                 <h1>Campus Path Viewer</h1>
             </div>
-            <p class="subtitle">Visualize paths between campus locations</p>
         </header>
         
         <div class="content">
@@ -617,74 +489,6 @@
                     <div class="spinner"></div>
                     <h3 id="loading-message">Loading Campus Data...</h3>
                     <p id="loading-submessage">Preparing path visualization</p>
-                </div>
-            </div>
-        
-            <div class="drawer-overlay" id="drawer-overlay"></div>
-            
-            <div class="controls" id="controls-drawer">
-                <button class="close-drawer" id="close-drawer">✕</button>
-                
-                <div class="control-group">
-                    <h2>Select Locations</h2>
-                    
-                    <div class="dropdown-container">
-                        <div class="dropdown" id="from-dropdown">
-                            <div class="dropdown-header">
-                                <span id="from-dropdown-text">Select Start Location</span>
-                                <span>▼</span>
-                            </div>
-                            <div class="dropdown-options" id="from-dropdown-options"></div>
-                        </div>
-                        
-                        <div class="dropdown" id="to-dropdown">
-                            <div class="dropdown-header">
-                                <span id="to-dropdown-text">Select End Location</span>
-                                <span>▼</span>
-                            </div>
-                            <div class="dropdown-options" id="to-dropdown-options"></div>
-                        </div>
-                    </div>
-                    
-                    <button id="start-path" class="generate-path-btn" disabled>Generate Path</button>
-                    
-                    <div class="status-bar" id="path-status-bar">
-                        <div class="status-item">
-                            <span class="status-label">Path Status:</span>
-                            <span class="status-value" id="path-status">Not loaded</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-label">Distance:</span>
-                            <span class="status-value" id="path-distance">0 meters</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="control-group">
-                    <h2>Navigation</h2>
-                    <div class="btn-group">
-                        <button id="restart-walk" class="btn success" disabled>Restart</button>
-                        <button id="fly-mode" class="btn">Fly Mode: Off</button>
-                    </div>
-                    
-                    <div class="status-bar" id="walk-status-bar">
-                        <div class="status-item">
-                            <span class="status-label">Progress:</span>
-                            <span class="status-value" id="walk-progress">0%</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-label">Speed:</span>
-                            <span class="status-value" id="walk-speed">Normal</span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-label">Control Mode:</span>
-                            <span class="status-value" id="control-mode">Orbit</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="path-info">
-                    <p>Paths are calculated based on predefined routes between campus locations. Select a start and end location to visualize the path.</p>
                 </div>
             </div>
         </div>
@@ -709,6 +513,7 @@
         let isFlyMode = false;
         let personDirection = new THREE.Vector3(0, 0, 1);
         let cameraFollowing = false;
+        let currentViewMode = 'first-person';
         
         // JSON data variables
         let CAMPUS_POINTS = {};
@@ -871,9 +676,6 @@
             // Initialize keyboard controls for fly mode
             initKeyboardControls();
             
-            // Initialize UI components
-            initDrawer();
-            
             // Create person model
             createPersonModel();
             
@@ -885,39 +687,6 @@
             
             // Hide the loading indicator
             document.getElementById('loading').classList.add('hidden');
-        }
-        
-        // Initialize drawer functionality
-        function initDrawer() {
-            const burgerMenu = document.getElementById('burger-menu');
-            const closeDrawer = document.getElementById('close-drawer');
-            const drawer = document.getElementById('controls-drawer');
-            const overlay = document.getElementById('drawer-overlay');
-
-            function openDrawer() {
-                drawer.classList.add('active');
-                overlay.classList.add('active');
-                burgerMenu.classList.add('active');
-                document.body.style.overflow = 'hidden';
-            }
-
-            function closeDrawerFunc() {
-                drawer.classList.remove('active');
-                overlay.classList.remove('active');
-                burgerMenu.classList.remove('active');
-                document.body.style.overflow = '';
-            }
-
-            burgerMenu.addEventListener('click', openDrawer);
-            closeDrawer.addEventListener('click', closeDrawerFunc);
-            overlay.addEventListener('click', closeDrawerFunc);
-
-            // Close drawer on escape key
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && drawer.classList.contains('active')) {
-                    closeDrawerFunc();
-                }
-            });
         }
         
         // Initialize keyboard controls for fly mode
@@ -1057,8 +826,20 @@
             
             // Button events
             document.getElementById('start-path').addEventListener('click', startPath);
-            document.getElementById('restart-walk').addEventListener('click', restartWalk);
-            document.getElementById('fly-mode').addEventListener('click', toggleFlyMode);
+            
+            // View mode selection
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentViewMode = this.dataset.view;
+                    
+                    // Update camera position based on view mode
+                    if (currentViewMode === 'third-person' && personModel && personModel.visible) {
+                        setupThirdPersonCamera();
+                    }
+                });
+            });
         }
         
         function updateGeneratePathButton() {
@@ -1069,25 +850,30 @@
                 generateBtn.disabled = true;
             }
         }
-
-        function toggleFlyMode() {
-            isFlyMode = !isFlyMode;
-            const flyButton = document.getElementById('fly-mode');
+        
+        // Setup third person camera view
+        function setupThirdPersonCamera() {
+            if (!personModel || !currentPath) return;
             
-            if (isFlyMode) {
-                // Enable fly controls, disable orbit controls
-                controls.enabled = false;
-                flyButton.textContent = 'Fly Mode: On';
-                flyButton.classList.add('primary');
-                document.getElementById('control-mode').textContent = 'Fly';
-                cameraFollowing = false;
-            } else {
-                // Enable orbit controls, disable fly controls
-                controls.enabled = true;
-                flyButton.textContent = 'Fly Mode: Off';
-                flyButton.classList.remove('primary');
-                document.getElementById('control-mode').textContent = 'Orbit';
-            }
+            // Position camera behind the person
+            const cameraDistance = 3;
+            const cameraHeight = 1.5;
+            
+            // Calculate camera position behind the person
+            const cameraOffset = new THREE.Vector3(
+                -personDirection.x * cameraDistance,
+                cameraHeight,
+                -personDirection.z * cameraDistance
+            );
+            
+            const cameraPosition = personModel.position.clone().add(cameraOffset);
+            
+            // Smoothly move camera to new position
+            animateCamera(
+                [cameraPosition.x, cameraPosition.y, cameraPosition.z],
+                [personModel.position.x, personModel.position.y + 1, personModel.position.z],
+                500
+            );
         }
         
         // Create person model - Adjusted to be smaller
@@ -1215,12 +1001,10 @@
             if (PREDEFINED_PATHS[pathKey]) {
                 pathData = PREDEFINED_PATHS[pathKey];
                 path = pathData.path;
-                document.getElementById('path-status').textContent = 'Predefined path';
             } else if (PREDEFINED_PATHS[reversePathKey]) {
                 pathData = PREDEFINED_PATHS[reversePathKey];
                 path = [...pathData.path].reverse(); // Reverse the path array
                 isReversed = true;
-                document.getElementById('path-status').textContent = 'Predefined path (reversed)';
             } else {
                 // Create a direct path as fallback
                 const start = CAMPUS_POINTS[selectedFromPoint];
@@ -1233,8 +1017,6 @@
                     {x: (start.x + end.x)/2, y: Math.max(start.y, end.y) + 1.0, z: (start.z + end.z)/2},
                     {x: end.x, y: end.y + 0.02, z: end.z}
                 ];
-                
-                document.getElementById('path-status').textContent = 'Direct path';
             }
             
             // Create visualization
@@ -1254,22 +1036,15 @@
                 
                 currentPath = pathCoordinates;
                 
-                // Calculate approximate distance
-                const distance = Math.round(pathCoordinates.reduce((sum, point, i, arr) => {
-                    if (i === 0) return sum;
-                    return sum + point.distanceTo(arr[i-1]);
-                }, 0) * 10);
-
-                const pathLength = pathCoordinates.reduce((sum, point, i, arr) => {
-                    if (i === 0) return sum;
-                    return sum + point.distanceTo(arr[i-1]);
-                }, 0);
-
-                window.currentWalkingSpeed = Math.max(0.001, Math.min(0.00005, 0.02 / pathLength));
-
+                // Calculate path length for speed adjustment
+                let pathLength = 0;
+                for (let i = 1; i < pathCoordinates.length; i++) {
+                    pathLength += pathCoordinates[i].distanceTo(pathCoordinates[i-1]);
+                }
                 
-                document.getElementById('path-distance').textContent = `${distance} meters`;
-                document.getElementById('path-status-bar').style.display = 'block';
+                // Adjust walking speed based on path length
+                // Longer paths will have slower walking speed
+                window.currentWalkingSpeed = Math.max(0.001, Math.min(0.0000005, 0.02 / pathLength));
                 
                 // Position person at start
                 personModel.position.copy(pathCoordinates[0]);
@@ -1287,9 +1062,23 @@
                     lookAtPoint = startPoint.clone().add(new THREE.Vector3(0, 0, 1));
                 }
                 
-                // Calculate camera position (much closer to the person)
-                const cameraOffset = new THREE.Vector3(-personDirection.x, 0.2, -personDirection.z).multiplyScalar(2);
-                const cameraPosition = startPoint.clone().add(cameraOffset);
+                // Calculate camera position based on view mode
+                let cameraPosition;
+                if (currentViewMode === 'first-person') {
+                    // First-person view: position camera at person's eye level
+                    const eyeLevel = 0.15; // Height of eyes from ground
+                    cameraPosition = startPoint.clone().add(new THREE.Vector3(0, eyeLevel, 0));
+                } else {
+                    // Third-person view: position camera behind the person
+                    const cameraDistance = 3;
+                    const cameraHeight = 1.5;
+                    const cameraOffset = new THREE.Vector3(
+                        -personDirection.x * cameraDistance,
+                        cameraHeight,
+                        -personDirection.z * cameraDistance
+                    );
+                    cameraPosition = startPoint.clone().add(cameraOffset);
+                }
                 
                 // Animate camera to start position
                 animateCamera(
@@ -1297,30 +1086,10 @@
                     [lookAtPoint.x, lookAtPoint.y, lookAtPoint.z],
                     1000
                 ).then(() => {
-                    // Enable restart button after camera animation completes
-                    document.getElementById('restart-walk').disabled = false;
-                    document.getElementById('walk-status-bar').style.display = 'block';
-                    
                     // Automatically start walking
                     startWalking();
                 });
             }
-        }
-
-        function restartWalk() {
-            if (!currentPath || currentPath.length === 0) {
-                alert('Please generate a path first');
-                return;
-            }
-            
-            isWalking = false;
-            walkingProgress = 0;
-            
-            // Reset person position to start
-            personModel.position.copy(currentPath[0]);
-            
-            // Start walking again
-            startWalking();
         }
 
         function startWalking() {
@@ -1351,10 +1120,6 @@
             personModel.visible = false;
             
             currentPath = null;
-            document.getElementById('walk-progress').textContent = '0%';
-            document.getElementById('path-status').textContent = 'No path shown';
-            document.getElementById('path-distance').textContent = '0 meters';
-            document.getElementById('restart-walk').disabled = true;
         }
 
         // Load model with optimized loading (but don't add to scene)
@@ -1493,20 +1258,46 @@
         function updateCameraFollow() {
             if (!cameraFollowing || !isWalking || isFlyMode) return;
             
-            // First-person view: position camera at person's eye level
-            const eyeLevel = 0.15; // Height of eyes from ground
-            const cameraOffset = new THREE.Vector3(0, eyeLevel, 0);
-            
-            // Set camera to person's position with eye level offset
-            camera.position.copy(personModel.position).add(cameraOffset);
-            
-            // Look in the direction the person is moving
-            const lookAtPoint = personModel.position.clone().add(personDirection);
-            camera.lookAt(lookAtPoint);
-            
-            // Update controls target to maintain smooth camera movement
-            controls.target.copy(lookAtPoint);
-            controls.update();
+            if (currentViewMode === 'first-person') {
+                // First-person view: position camera at person's eye level
+                const eyeLevel = 0.15; // Height of eyes from ground
+                const cameraOffset = new THREE.Vector3(0, eyeLevel, 0);
+                
+                // Set camera to person's position with eye level offset
+                camera.position.copy(personModel.position).add(cameraOffset);
+                
+                // Look in the direction the person is moving
+                const lookAtPoint = personModel.position.clone().add(personDirection);
+                camera.lookAt(lookAtPoint);
+                
+                // Update controls target to maintain smooth camera movement
+                controls.target.copy(lookAtPoint);
+                controls.update();
+            } else {
+                // Third-person view: position camera behind the person
+                const cameraDistance = 3;
+                const cameraHeight = 1.5;
+                
+                // Calculate camera position behind the person
+                const cameraOffset = new THREE.Vector3(
+                    -personDirection.x * cameraDistance,
+                    cameraHeight,
+                    -personDirection.z * cameraDistance
+                );
+                
+                const cameraPosition = personModel.position.clone().add(cameraOffset);
+                
+                // Smoothly move camera to new position
+                camera.position.lerp(cameraPosition, 0.1);
+                
+                // Look at the person
+                const lookAtPoint = personModel.position.clone().add(new THREE.Vector3(0, 1, 0));
+                camera.lookAt(lookAtPoint);
+                
+                // Update controls target
+                controls.target.copy(lookAtPoint);
+                controls.update();
+            }
         }
         
         function animate() {
@@ -1549,8 +1340,6 @@
                     
                     const bobOffset = Math.sin(Date.now() * 0.01) * 0.01;
                     personModel.position.y += bobOffset;
-                    
-                    document.getElementById('walk-progress').textContent = Math.round(walkingProgress * 100) + '%';
                 }
             }
             
