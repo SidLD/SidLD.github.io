@@ -1128,10 +1128,26 @@
     try {
       const loader = new THREE.GLTFLoader();
 
+      // Wrap GitHub release link with proxy
+    const modelUrls = [
+    "https://corsproxy.io/?" + encodeURIComponent(
+    "https://github.com/SidLD/SidLD.github.io/releases/download/nwssu/nwssu.glb"
+    ),
+    ];
+
       const tryLoadModel = (urlIndex = 0) => {
+    if (urlIndex >= modelUrls.length) {
+    console.error("All model URLs failed, creating placeholder");
+    const placeholder = createPlaceholderModel();
+    resolve(placeholder);
+    return;
+    }
+
+        const currentUrl = modelUrls[urlIndex];
+        console.log(`Trying to load model from: ${currentUrl}`);
 
         loader.load(
-          'nwssu.glb',
+          currentUrl,
           (gltf) => {
             const model = gltf.scene;
 
