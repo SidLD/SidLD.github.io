@@ -730,6 +730,8 @@ body.fly-mode .crosshair {
                         <p>Move mouse to look around</p>
                         <p>Press <span class="fly-key">P</span> to record path points</p>
                         <p>Press <span class="fly-key">U</span> to undo last point</p>
+                        <p>Use <span class="fly-key">+</span> / <span class="fly-key">-</span> to adjust speed</p>
+                        <p>Current Speed: <span id="speed-display">0.10</span></p>
                     </div>
                 </div>
             </div>
@@ -931,6 +933,7 @@ body.fly-mode .crosshair {
         let moveRight = false;
         let moveUp = false;
         let moveDown = false;
+        let flySpeed = 0.1; // Default movement speed
         
         // Data from JSON
         let CAMPUS_POINTS = {};
@@ -1438,9 +1441,36 @@ body.fly-mode .crosshair {
                         undoLastPoint();
                     }
                     break;
+                // Speed control
+                case 'Equal':
+                case 'NumpadAdd':
+                    flySpeed = Math.min(flySpeed + 0.02, 0.5);
+                    updateSpeedDisplay();
+                    break;
+                case 'Minus':
+                case 'NumpadSubtract':
+                    flySpeed = Math.max(flySpeed - 0.02, 0.01);
+                    updateSpeedDisplay();
+                    break;
             }
         }
         
+        // Update speed display
+        function updateSpeedDisplay() {
+            const speedDisplay = document.getElementById('speed-display');
+            if (speedDisplay) {
+                speedDisplay.textContent = flySpeed.toFixed(2);
+                
+                // Add visual feedback for speed change
+                speedDisplay.style.color = '#00ff00';
+                speedDisplay.style.fontWeight = 'bold';
+                setTimeout(() => {
+                    speedDisplay.style.color = '';
+                    speedDisplay.style.fontWeight = '';
+                }, 500);
+            }
+        }
+
         // Record point at center of screen in fly mode
         function recordPointAtCenter() {
             if (!isRecording) return;
@@ -1529,6 +1559,9 @@ body.fly-mode .crosshair {
             
             // Set camera position to a good starting point
             camera.position.set(0, 3, 0);
+            
+            // Update speed display
+            updateSpeedDisplay();
             
             console.log('🚀 Entered Fly Mode');
         }
@@ -2302,7 +2335,7 @@ body.fly-mode .crosshair {
             
             // Update fly mode movement
             if (isFlyMode && flyControls.enabled) {
-                const delta = 0.1;
+                const delta = flySpeed;
                 
                 if (moveForward) {
                     flyControls.moveForward(delta);
