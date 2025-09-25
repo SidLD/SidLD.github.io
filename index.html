@@ -127,6 +127,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: relative;
+            z-index: 1000;
+            min-height: 60px;
         }
 
         .header-controls {
@@ -405,6 +408,16 @@
             border-radius: 50%;
         }
 
+        .department-locations {
+            display: none;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .department-locations.visible {
+            display: flex;
+        }
+
         @media (max-width: 768px) {
             header {
                 flex-direction: column;
@@ -423,6 +436,16 @@
             
             .dropdown {
                 min-width: 120px;
+            }
+            
+            .department-locations {
+                flex-direction: column;
+                width: 100%;
+                gap: 0.5rem;
+            }
+            
+            .department-locations .dropdown {
+                width: 100%;
             }
             
             .logo h1 {
@@ -453,6 +476,32 @@
     <div class="container" id="app-container">
         <header>
             <div class="header-controls">
+                <div class="dropdown" id="department-dropdown">
+                    <div class="dropdown-header">
+                        <span id="department-dropdown-text">Department</span>
+                        <span>▼</span>
+                    </div>
+                    <div class="dropdown-options" id="department-dropdown-options"></div>
+                </div>
+                
+                <div class="department-locations" id="department-locations">
+                    <div class="dropdown" id="locationA-dropdown">
+                        <div class="dropdown-header">
+                            <span id="locationA-dropdown-text">CCIS Start</span>
+                            <span>▼</span>
+                        </div>
+                        <div class="dropdown-options" id="locationA-dropdown-options"></div>
+                    </div>
+                    
+                    <div class="dropdown" id="locationB-dropdown">
+                        <div class="dropdown-header">
+                            <span id="locationB-dropdown-text">CCIS End</span>
+                            <span>▼</span>
+                        </div>
+                        <div class="dropdown-options" id="locationB-dropdown-options"></div>
+                    </div>
+                </div>
+                
                 <div class="dropdown" id="from-dropdown">
                     <div class="dropdown-header">
                         <span id="from-dropdown-text">Start</span>
@@ -496,7 +545,7 @@
 
     <!-- Using UMD versions for compatibility -->
     <script src="./threejs/three.min.js"></script>
-    <script src="./threejs//GLTFLoader.min.js"></script>
+    <script src="./threejs/GLTFLoader.min.js"></script>
     <script src="./threejs/OrbitControls.js"></script>
 
     <script>
@@ -505,19 +554,49 @@
         let model = null;
         let pathLine = null;
         let personModel = null;
-        let isWalking = false;
-        let walkingProgress = 0;
         let selectedFromPoint = null;
         let selectedToPoint = null;
+        let selectedDepartment = null;
+        let selectedLocationA = null;
+        let selectedLocationB = null;
         let currentPath = null;
+        let isWalking = false;
+        let walkingProgress = 0;
+        let cameraFollowing = false;
         let isFlyMode = false;
         let personDirection = new THREE.Vector3(0, 0, 1);
-        let cameraFollowing = false;
         let currentViewMode = 'first-person';
         
         // JSON data variables
         let CAMPUS_POINTS = {};
         let PREDEFINED_PATHS = {};
+        
+        // Department data with camera positions
+        const DEPARTMENTS = {
+            'CCIS': {
+                name: 'College of Computing and Information Sciences',
+                hasLocations: true,
+                camera: { position: [-11.4023, 3.1333, -6.5408], target: [-12.8938, 2.2596, -2.5850] }
+            },
+            'CRIM': {
+                name: 'College of Criminal Justice',
+                hasLocations: false,
+                camera: { position: [-7.0789, 2.6126, -6.3270], target: [-12.8938, 2.2596, -5.5850] }
+            },
+            'COM': {
+                name: 'College of Management',
+                hasLocations: false,
+                camera: { position: [-1.5614, 5.0422, 0.7315], target: [12.8938, 2.2596, -5.5850] }
+            },
+            'DEFAULT': {
+                name: 'General Campus',
+                hasLocations: false,
+                camera: { position: [0.7578, 4.6168, -6.4757], target: [12.8938, 2.2596, -5.5850] }
+            }
+        };
+        
+        // CCIS-specific locations (these will be populated from JSON)
+        let CCIS_LOCATIONS = [];
         
         let moveForward = false;
         let moveBackward = false;
@@ -650,9 +729,12 @@
             
             // Add the preloaded model to the scene if available
             if (preloadedModel) {
+                console.log('Adding preloaded model to scene...');
                 scene.add(preloadedModel);
                 model = preloadedModel;
+                console.log('Model added to scene, model object:', model);
             } else {
+                console.log('No preloaded model, creating placeholder...');
                 // Create a placeholder model if preloading failed
                 createPlaceholderModel();
             }
@@ -730,6 +812,21 @@
                 CAMPUS_POINTS = jsonData.locations;
                 PREDEFINED_PATHS = jsonData.paths;
                 
+                // Populate CCIS locations from JSON
+                // These are the CCIS-specific locations (rooms, labs, etc.)
+                CCIS_LOCATIONS = Object.keys(jsonData.locations).filter(location => {
+                    const name = location.toLowerCase();
+                    return name.includes('room') || 
+                           name.includes('lab') || 
+                           name.includes('multimedia') || 
+                           name.includes('speech') || 
+                           name.includes('faculty') || 
+                           name.includes('deansoffice') || 
+                           name.includes('conference');
+                });
+                
+                console.log('CCIS Locations loaded:', CCIS_LOCATIONS);
+                
             } catch (error) {
                 console.error('Error loading JSON data:', error);
                 
@@ -758,11 +855,86 @@
                         ]
                     }
                 };
+                
+                // Fallback CCIS locations
+                CCIS_LOCATIONS = ['room301', 'room302', 'lab1', 'lab2'];
             }
         }
         
         function initUI() {
-            // Populate dropdowns
+            // Populate department dropdown
+            const departmentOptions = document.getElementById('department-dropdown-options');
+            Object.keys(DEPARTMENTS).forEach(deptKey => {
+                const deptOption = document.createElement('div');
+                deptOption.className = 'dropdown-option';
+                deptOption.textContent = DEPARTMENTS[deptKey].name;
+                deptOption.dataset.value = deptKey;
+                deptOption.addEventListener('click', function() {
+                    document.querySelectorAll('#department-dropdown .dropdown-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    deptOption.classList.add('selected');
+                    document.getElementById('department-dropdown-text').textContent = DEPARTMENTS[deptKey].name;
+                    selectedDepartment = deptKey;
+                    document.getElementById('department-dropdown').classList.remove('open');
+                    
+                    // Move camera to department position
+                    moveCameraToDepartment(deptKey);
+                    
+                    // Show/hide department locations based on selection
+                    toggleDepartmentLocations();
+                    
+                    // Update generate path button
+                    updateGeneratePathButton();
+                });
+                departmentOptions.appendChild(deptOption);
+            });
+            
+            // Populate location A and B dropdowns with CCIS locations (initially hidden)
+            const locationAOptions = document.getElementById('locationA-dropdown-options');
+            const locationBOptions = document.getElementById('locationB-dropdown-options');
+            
+            // Add CCIS locations to both dropdowns
+            CCIS_LOCATIONS.forEach(locationName => {
+                // Create a more readable display name
+                const displayName = locationName.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                
+                // Location A dropdown (Start)
+                const locationAOption = document.createElement('div');
+                locationAOption.className = 'dropdown-option';
+                locationAOption.textContent = displayName;
+                locationAOption.dataset.value = locationName;
+                locationAOption.addEventListener('click', function() {
+                    document.querySelectorAll('#locationA-dropdown .dropdown-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    locationAOption.classList.add('selected');
+                    document.getElementById('locationA-dropdown-text').textContent = displayName;
+                    selectedLocationA = locationName;
+                    document.getElementById('locationA-dropdown').classList.remove('open');
+                    updateGeneratePathButton();
+                });
+                locationAOptions.appendChild(locationAOption);
+                
+                // Location B dropdown (End)
+                const locationBOption = document.createElement('div');
+                locationBOption.className = 'dropdown-option';
+                locationBOption.textContent = displayName;
+                locationBOption.dataset.value = locationName;
+                locationBOption.addEventListener('click', function() {
+                    document.querySelectorAll('#locationB-dropdown .dropdown-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    locationBOption.classList.add('selected');
+                    document.getElementById('locationB-dropdown-text').textContent = displayName;
+                    selectedLocationB = locationName;
+                    document.getElementById('locationB-dropdown').classList.remove('open');
+                    updateGeneratePathButton();
+                });
+                locationBOptions.appendChild(locationBOption);
+            });
+            
+            // Populate regular from/to dropdowns
             const fromOptions = document.getElementById('from-dropdown-options');
             const toOptions = document.getElementById('to-dropdown-options');
             
@@ -842,13 +1014,62 @@
             });
         }
         
+        function moveCameraToDepartment(departmentKey) {
+            const department = DEPARTMENTS[departmentKey];
+            if (department && department.camera) {
+                const cameraPos = department.camera.position;
+                const cameraTarget = department.camera.target;
+                
+                // Animate camera to department position
+                animateCamera(
+                    [cameraPos[0], cameraPos[1], cameraPos[2]],
+                    [cameraTarget[0], cameraTarget[1], cameraTarget[2]],
+                    1000
+                );
+            }
+        }
+        
+        function toggleDepartmentLocations() {
+            const departmentLocations = document.getElementById('department-locations');
+            const regularFromDropdown = document.getElementById('from-dropdown');
+            const regularToDropdown = document.getElementById('to-dropdown');
+            
+            if (selectedDepartment && DEPARTMENTS[selectedDepartment].hasLocations) {
+                // Show CCIS Start/End dropdowns, hide regular Start/End dropdowns
+                departmentLocations.classList.add('visible');
+                regularFromDropdown.style.display = 'none';
+                regularToDropdown.style.display = 'none';
+            } else {
+                // Hide CCIS Start/End dropdowns, hide regular Start/End dropdowns for non-CCIS departments
+                departmentLocations.classList.remove('visible');
+                regularFromDropdown.style.display = 'none';
+                regularToDropdown.style.display = 'none';
+                
+                // Reset location selections when hiding
+                selectedLocationA = null;
+                selectedLocationB = null;
+                document.getElementById('locationA-dropdown-text').textContent = 'CCIS Start';
+                document.getElementById('locationB-dropdown-text').textContent = 'CCIS End';
+                document.querySelectorAll('#locationA-dropdown .dropdown-option').forEach(opt => opt.classList.remove('selected'));
+                document.querySelectorAll('#locationB-dropdown .dropdown-option').forEach(opt => opt.classList.remove('selected'));
+            }
+        }
+        
         function updateGeneratePathButton() {
             const generateBtn = document.getElementById('start-path');
-            if (selectedFromPoint && selectedToPoint) {
-                generateBtn.disabled = false;
+            
+            // Check if we have the required selections based on department
+            let canGenerate = false;
+            
+            if (selectedDepartment && DEPARTMENTS[selectedDepartment].hasLocations) {
+                // For departments with locations (like CCIS), need both Location A and Location B selected
+                canGenerate = selectedLocationA && selectedLocationB;
             } else {
-                generateBtn.disabled = true;
+                // For other departments, use regular from/to selection
+                canGenerate = selectedFromPoint && selectedToPoint;
             }
+            
+            generateBtn.disabled = !canGenerate;
         }
         
         // Setup third person camera view
@@ -856,8 +1077,8 @@
             if (!personModel || !currentPath) return;
             
             // Position camera behind the person
-            const cameraDistance = 3;
-            const cameraHeight = 1.5;
+            const cameraDistance = 1.5;
+            const cameraHeight = 1.2;
             
             // Calculate camera position behind the person
             const cameraOffset = new THREE.Vector3(
@@ -977,46 +1198,88 @@
         }
 
         function startPath() {
-            if (!selectedFromPoint || !selectedToPoint) {
-                alert('Please select both start and end locations');
-                return;
-            }
-            
-            if (selectedFromPoint === selectedToPoint) {
-                alert('Start and end locations cannot be the same');
-                return;
+            // Check if we have the required selections based on department
+            if (selectedDepartment && DEPARTMENTS[selectedDepartment].hasLocations) {
+                if (!selectedLocationA || !selectedLocationB) {
+                    alert('Please select both Start and End locations');
+                    return;
+                }
+                if (selectedLocationA === selectedLocationB) {
+                    alert('Start and End locations cannot be the same');
+                    return;
+                }
+            } else {
+                if (!selectedFromPoint || !selectedToPoint) {
+                    alert('Please select both start and end locations');
+                    return;
+                }
+                if (selectedFromPoint === selectedToPoint) {
+                    alert('Start and end locations cannot be the same');
+                    return;
+                }
             }
             
             clearPath();
-            
-            // Create path key in format "from_to"
-            const pathKey = `${selectedFromPoint}_${selectedToPoint}`;
-            const reversePathKey = `${selectedToPoint}_${selectedFromPoint}`;
             
             let pathData = null;
             let path = null;
             let isReversed = false;
             
-            // Try to find predefined path
-            if (PREDEFINED_PATHS[pathKey]) {
-                pathData = PREDEFINED_PATHS[pathKey];
-                path = pathData.path;
-            } else if (PREDEFINED_PATHS[reversePathKey]) {
-                pathData = PREDEFINED_PATHS[reversePathKey];
-                path = [...pathData.path].reverse(); // Reverse the path array
-                isReversed = true;
+            if (selectedDepartment && DEPARTMENTS[selectedDepartment].hasLocations) {
+                // For departments with locations (like CCIS), use predefined paths from JSON
+                const pathKey = `${selectedLocationA}_${selectedLocationB}`;
+                const reversePathKey = `${selectedLocationB}_${selectedLocationA}`;
+                
+                // Try to find predefined path
+                if (PREDEFINED_PATHS[pathKey]) {
+                    pathData = PREDEFINED_PATHS[pathKey];
+                    path = pathData.path;
+                } else if (PREDEFINED_PATHS[reversePathKey]) {
+                    pathData = PREDEFINED_PATHS[reversePathKey];
+                    path = [...pathData.path].reverse(); // Reverse the path array
+                    isReversed = true;
+                } else {
+                    // Fallback: create a simple path between the two locations
+                    const locationACoords = CAMPUS_POINTS[selectedLocationA];
+                    const locationBCoords = CAMPUS_POINTS[selectedLocationB];
+                    
+                    if (!locationACoords || !locationBCoords) {
+                        alert('Location coordinates not found');
+                        return;
+                    }
+                    
+                    path = [
+                        {x: locationACoords.x, y: locationACoords.y + 0.02, z: locationACoords.z},
+                        {x: (locationACoords.x + locationBCoords.x)/2, y: Math.max(locationACoords.y, locationBCoords.y) + 1.0, z: (locationACoords.z + locationBCoords.z)/2},
+                        {x: locationBCoords.x, y: locationBCoords.y + 0.02, z: locationBCoords.z}
+                    ];
+                }
             } else {
-                // Create a direct path as fallback
-                const start = CAMPUS_POINTS[selectedFromPoint];
-                const end = CAMPUS_POINTS[selectedToPoint];
+                // For other departments, use regular path logic
+                const pathKey = `${selectedFromPoint}_${selectedToPoint}`;
+                const reversePathKey = `${selectedToPoint}_${selectedFromPoint}`;
                 
-                if (!start || !end) return;
-                
-                path = [
-                    {x: start.x, y: start.y + 0.02, z: start.z},
-                    {x: (start.x + end.x)/2, y: Math.max(start.y, end.y) + 1.0, z: (start.z + end.z)/2},
-                    {x: end.x, y: end.y + 0.02, z: end.z}
-                ];
+                // Try to find predefined path
+                if (PREDEFINED_PATHS[pathKey]) {
+                    pathData = PREDEFINED_PATHS[pathKey];
+                    path = pathData.path;
+                } else if (PREDEFINED_PATHS[reversePathKey]) {
+                    pathData = PREDEFINED_PATHS[reversePathKey];
+                    path = [...pathData.path].reverse(); // Reverse the path array
+                    isReversed = true;
+                } else {
+                    // Create a direct path as fallback
+                    const start = CAMPUS_POINTS[selectedFromPoint];
+                    const end = CAMPUS_POINTS[selectedToPoint];
+                    
+                    if (!start || !end) return;
+                    
+                    path = [
+                        {x: start.x, y: start.y + 0.02, z: start.z},
+                        {x: (start.x + end.x)/2, y: Math.max(start.y, end.y) + 1.0, z: (start.z + end.z)/2},
+                        {x: end.x, y: end.y + 0.02, z: end.z}
+                    ];
+                }
             }
             
             // Create visualization
@@ -1024,7 +1287,7 @@
                 const pathCoordinates = path.map(p => new THREE.Vector3(p.x, p.y, p.z));
                 
                 const curve = new THREE.CatmullRomCurve3(pathCoordinates);
-                const tubeGeometry = new THREE.TubeGeometry(curve, pathCoordinates.length * 2, 0.02, 8, false);
+                const tubeGeometry = new THREE.TubeGeometry(curve, pathCoordinates.length * 2, 0.005, 8, false);
                 const tubeMaterial = new THREE.MeshBasicMaterial({ 
                     color: 0x00ff00,
                     transparent: true,
@@ -1036,15 +1299,6 @@
                 
                 currentPath = pathCoordinates;
                 
-                // Calculate path length for speed adjustment
-                let pathLength = 0;
-                for (let i = 1; i < pathCoordinates.length; i++) {
-                    pathLength += pathCoordinates[i].distanceTo(pathCoordinates[i-1]);
-                }
-                
-                // Adjust walking speed based on path length
-                // Longer paths will have slower walking speed
-                window.currentWalkingSpeed = Math.max(0.001, Math.min(0.0000005, 0.02 / pathLength));
                 
                 // Position person at start
                 personModel.position.copy(pathCoordinates[0]);
@@ -1070,8 +1324,8 @@
                     cameraPosition = startPoint.clone().add(new THREE.Vector3(0, eyeLevel, 0));
                 } else {
                     // Third-person view: position camera behind the person
-                    const cameraDistance = 3;
-                    const cameraHeight = 1.5;
+                    const cameraDistance = 0.4;
+                    const cameraHeight = 0.2;
                     const cameraOffset = new THREE.Vector3(
                         -personDirection.x * cameraDistance,
                         cameraHeight,
@@ -1086,7 +1340,7 @@
                     [lookAtPoint.x, lookAtPoint.y, lookAtPoint.z],
                     1000
                 ).then(() => {
-                    // Automatically start walking
+                    // Automatically start walking after camera animation
                     startWalking();
                 });
             }
@@ -1128,64 +1382,45 @@
     try {
       const loader = new THREE.GLTFLoader();
 
-      // Wrap GitHub release link with proxy
-    const modelUrls = [
-    "https://corsproxy.io/?" + encodeURIComponent(
-    "https://github.com/SidLD/SidLD.github.io/releases/download/nwssu/nwssu.glb"
-    ),
-    ];
+      loader.load(
+        'nwssu.glb',
+        (gltf) => {
+          const model = gltf.scene;
 
-      const tryLoadModel = (urlIndex = 0) => {
-    if (urlIndex >= modelUrls.length) {
-    console.error("All model URLs failed, creating placeholder");
-    const placeholder = createPlaceholderModel();
-    resolve(placeholder);
-    return;
-    }
+          // Scale to fit
+          const bbox = new THREE.Box3().setFromObject(model);
+          const size = bbox.getSize(new THREE.Vector3());
+          const maxDimension = Math.max(size.x, size.y, size.z);
+          const scale = 50 / maxDimension;
+          model.scale.setScalar(scale);
 
-        const currentUrl = modelUrls[urlIndex];
-        console.log(`Trying to load model from: ${currentUrl}`);
-
-        loader.load(
-          currentUrl,
-          (gltf) => {
-            const model = gltf.scene;
-
-            // Scale to fit
-            const bbox = new THREE.Box3().setFromObject(model);
-            const size = bbox.getSize(new THREE.Vector3());
-            const maxDimension = Math.max(size.x, size.y, size.z);
-            const scale = 50 / maxDimension;
-            model.scale.setScalar(scale);
-
-            model.traverse((child) => {
-              if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
-              }
-            });
-
-            resolve(model);
-          },
-          (xhr) => {
-            if (xhr.total) {
-              const percent = Math.round((xhr.loaded / xhr.total) * 100);
-              const progressFill = document.getElementById("progress-fill");
-              const progressText = document.getElementById("progress-text");
-
-              const overallPercent = 40 + (percent * 0.6);
-              if (progressFill) progressFill.style.width = `${overallPercent}%`;
-              if (progressText) progressText.textContent = `Loading model: ${percent}%`;
+          model.traverse((child) => {
+            if (child.isMesh) {
+              child.castShadow = true;
+              child.receiveShadow = true;
             }
-          },
-          (error) => {
-            console.error(`Error loading model from ${currentUrl}:`, error);
-            tryLoadModel(urlIndex + 1);
-          }
-        );
-      };
+          });
 
-      tryLoadModel(0);
+          resolve(model);
+        },
+        (xhr) => {
+          if (xhr.total) {
+            const percent = Math.round((xhr.loaded / xhr.total) * 100);
+            const progressFill = document.getElementById("progress-fill");
+            const progressText = document.getElementById("progress-text");
+
+            const overallPercent = 40 + (percent * 0.6);
+            if (progressFill) progressFill.style.width = `${overallPercent}%`;
+            if (progressText) progressText.textContent = `Loading model: ${percent}%`;
+          }
+        },
+        (error) => {
+          console.error('Error loading model from nwssu.glb:', error);
+          console.log('Creating placeholder model instead...');
+          const placeholder = createPlaceholderModel();
+          resolve(placeholder);
+        }
+      );
 
     } catch (error) {
       console.error("Exception in model loading:", error);
@@ -1275,8 +1510,8 @@
                 controls.update();
             } else {
                 // Third-person view: position camera behind the person
-                const cameraDistance = 3;
-                const cameraHeight = 1.5;
+                const cameraDistance = 0.4;
+                const cameraHeight = 0.2;
                 
                 // Calculate camera position behind the person
                 const cameraOffset = new THREE.Vector3(
@@ -1287,11 +1522,11 @@
                 
                 const cameraPosition = personModel.position.clone().add(cameraOffset);
                 
-                // Smoothly move camera to new position
-                camera.position.lerp(cameraPosition, 0.1);
+                // Smoothly move camera to new position with higher lerp factor for smoother following
+                camera.position.lerp(cameraPosition, 0.3);
                 
-                // Look at the person
-                const lookAtPoint = personModel.position.clone().add(new THREE.Vector3(0, 1, 0));
+                // Look in the same direction as the person is looking
+                const lookAtPoint = personModel.position.clone().add(personDirection);
                 camera.lookAt(lookAtPoint);
                 
                 // Update controls target
@@ -1313,7 +1548,7 @@
             
             // Animate person walking
             if (isWalking && currentPath && currentPath.length > 1) {
-                const speedToUse = window.currentWalkingSpeed || 0.002; // Fallback to 0.002 if not set
+                const speedToUse = 0.002; // Fixed walking speed
                 walkingProgress += speedToUse;
 
                 if (walkingProgress >= 1) {
@@ -1338,8 +1573,7 @@
                         personModel.lookAt(personModel.position.clone().add(personDirection));
                     }
                     
-                    const bobOffset = Math.sin(Date.now() * 0.01) * 0.01;
-                    personModel.position.y += bobOffset;
+                    // No bobbing animation - removed the bobOffset line
                 }
             }
             
