@@ -1176,14 +1176,34 @@ body.fly-mode .crosshair {
             });
         }
 
-        // RESET PERSON TO FIRST LOADED LOCATION
+        // RESET PERSON TO FIRST LOADED LOCATION AND SYNC CAMERA
         function resetPersonToFirstLocation() {
             if (personModel && Object.keys(CAMPUS_POINTS).length > 0) {
                 const firstLocationName = Object.keys(CAMPUS_POINTS)[0];
                 const firstPoint = CAMPUS_POINTS[firstLocationName];
                 personModel.position.set(firstPoint.x, firstPoint.y, firstPoint.z);
                 document.getElementById('person-height').textContent = firstPoint.y.toFixed(2);
+                
+                // Sync camera position with person model
+                syncCameraWithPerson(firstPoint);
             }
+        }
+        
+        // SYNC CAMERA POSITION WITH PERSON MODEL
+        function syncCameraWithPerson(personPoint) {
+            // Calculate optimal camera position (elevated and at an angle from person)
+            const offset = { x: 3, y: 2, z: 3 };
+            const cameraPosition = [
+                personPoint.x + offset.x,
+                personPoint.y + offset.y,
+                personPoint.z + offset.z
+            ];
+            
+            // Target the person's position
+            const target = [personPoint.x, personPoint.y, personPoint.z];
+            
+            // Animate camera to the new position
+            animateCamera(cameraPosition, target, 1000);
         }
 
         // SHOW ALL PATHS FUNCTION
@@ -1204,20 +1224,21 @@ body.fly-mode .crosshair {
                 );
 
                 if (pathCoordinates.length > 1) {
-                    const curve = new THREE.CatmullRomCurve3(pathCoordinates);
-                    const tubeGeometry = new THREE.TubeGeometry(curve, pathCoordinates.length * 2, 0.015, 8, false);
+                    // Use straight line segments instead of curved tubes
+                    const geometry = new THREE.BufferGeometry().setFromPoints(pathCoordinates);
                     
                     // Use different colors for different paths
                     const colors = [0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff, 0xffa500];
                     const color = colors[index % colors.length];
                     
-                    const tubeMaterial = new THREE.MeshBasicMaterial({ 
+                    const material = new THREE.LineBasicMaterial({ 
                         color: color,
+                        linewidth: 4,
                         transparent: true,
-                        opacity: 0.6
+                        opacity: 0.8
                     });
                     
-                    const pathLine = new THREE.Mesh(tubeGeometry, tubeMaterial);
+                    const pathLine = new THREE.Line(geometry, material);
                     pathLine.userData = { isAllPathsVisualization: true, pathId: pathId };
                     scene.add(pathLine);
                     allPathLines.push(pathLine);
@@ -1320,6 +1341,7 @@ body.fly-mode .crosshair {
             scene.fog = new THREE.Fog(0x0c0c1a, 10, 50);
             
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            // Initial camera position will be set after data loads to match person position
             camera.position.set(...COORDINATES.DEFAULT.position);
             
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true });
@@ -1814,17 +1836,17 @@ body.fly-mode .crosshair {
 
             if (currentRecordingPath.length < 2) return;
 
-            // Create new line
+            // Create straight line segments instead of curved
             const points = currentRecordingPath.map(p => new THREE.Vector3(p.x, p.y + 0.02, p.z));
-            const curve = new THREE.CatmullRomCurve3(points);
-            const tubeGeometry = new THREE.TubeGeometry(curve, points.length * 2, 0.015, 8, false);
-            const tubeMaterial = new THREE.MeshBasicMaterial({ 
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ 
                 color: 0x00ff00,
+                linewidth: 3,
                 transparent: true,
-                opacity: 0.7
+                opacity: 0.8
             });
 
-            const pathLine = new THREE.Mesh(tubeGeometry, tubeMaterial);
+            const pathLine = new THREE.Line(geometry, material);
             pathLine.userData = { isRecordingLine: true };
             scene.add(pathLine);
         }
@@ -2130,15 +2152,16 @@ body.fly-mode .crosshair {
         }
 
         function createPathVisualization(pathCoordinates) {
-            const curve = new THREE.CatmullRomCurve3(pathCoordinates);
-            const tubeGeometry = new THREE.TubeGeometry(curve, pathCoordinates.length * 2, 0.02, 8, false);
-            const tubeMaterial = new THREE.MeshBasicMaterial({ 
+            // Use straight line segments instead of curved tubes
+            const geometry = new THREE.BufferGeometry().setFromPoints(pathCoordinates);
+            const material = new THREE.LineBasicMaterial({ 
                 color: 0xff0000,
+                linewidth: 5,
                 transparent: true,
                 opacity: 0.9
             });
             
-            pathLine = new THREE.Mesh(tubeGeometry, tubeMaterial);
+            pathLine = new THREE.Line(geometry, material);
             scene.add(pathLine);
         }
 
@@ -2232,6 +2255,9 @@ body.fly-mode .crosshair {
                 personModel.position.set(firstPoint.x, firstPoint.y, firstPoint.z);
                 document.getElementById('walk-progress').textContent = '0%';
                 document.getElementById('person-height').textContent = firstPoint.y.toFixed(2);
+                
+                // Sync camera position with person model
+                syncCameraWithPerson(firstPoint);
             }
         }
 

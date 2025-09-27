@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NWSSU Path Finder</title>
+    <title>NWSSU Path Tracker</title>
     <style>
         * {
             margin: 0;
@@ -418,6 +418,105 @@
             display: flex;
         }
 
+        /* Mobile touch controls */
+        .mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: none;
+            justify-content: space-between;
+            align-items: flex-end;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        
+        .mobile-controls.visible {
+            display: flex;
+        }
+        
+        .movement-pad, .action-buttons {
+            pointer-events: all;
+        }
+        
+        .movement-pad {
+            position: relative;
+            width: 120px;
+            height: 120px;
+        }
+        
+        .move-btn {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: rgba(65, 105, 225, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        
+        .move-btn:active {
+            background: rgba(65, 105, 225, 1);
+            transform: scale(0.95);
+        }
+        
+        .move-btn.up { top: 0; left: 40px; }
+        .move-btn.down { bottom: 0; left: 40px; }
+        .move-btn.left { top: 40px; left: 0; }
+        .move-btn.right { top: 40px; right: 0; }
+        
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(106, 90, 205, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        
+        .action-btn:active {
+            background: rgba(106, 90, 205, 1);
+            transform: scale(0.95);
+        }
+        
+        .touch-instruction {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 1001;
+            display: none;
+        }
+        
+        .touch-instruction.visible {
+            display: block;
+        }
+
         @media (max-width: 768px) {
             header {
                 flex-direction: column;
@@ -450,6 +549,10 @@
             
             .logo h1 {
                 font-size: 2.5rem;
+            }
+            
+            .mobile-controls {
+                display: flex;
             }
         }
     </style>
@@ -527,7 +630,7 @@
             </div>
             
             <div class="header-title">
-                <h1>Campus Path Viewer</h1>
+                <h1>Path Tracker</h1>
             </div>
         </header>
         
@@ -540,6 +643,28 @@
                     <p id="loading-submessage">Preparing path visualization</p>
                 </div>
             </div>
+        </div>
+        
+        <!-- Mobile Controls -->
+        <div class="mobile-controls" id="mobile-controls">
+            <div class="movement-pad">
+                <div class="move-btn up" id="move-up">↑</div>
+                <div class="move-btn down" id="move-down">↓</div>
+                <div class="move-btn left" id="move-left">←</div>
+                <div class="move-btn right" id="move-right">→</div>
+            </div>
+            <div class="action-buttons">
+                <div class="action-btn" id="move-up-btn">UP</div>
+                <div class="action-btn" id="move-down-btn">DN</div>
+            </div>
+        </div>
+        
+        <!-- Touch Instruction -->
+        <div class="touch-instruction" id="touch-instruction">
+            <h3>Touch Controls</h3>
+            <p>• Drag on screen to look around</p>
+            <p>• Use buttons to move</p>
+            <p>• Tap to dismiss</p>
         </div>
     </div>
 
@@ -563,9 +688,10 @@
         let isWalking = false;
         let walkingProgress = 0;
         let cameraFollowing = false;
-        let isFlyMode = false;
+        let isFlyMode = true;
         let personDirection = new THREE.Vector3(0, 0, 1);
         let currentViewMode = 'first-person';
+        let arrivalMessage = null;
         
         // JSON data variables
         let CAMPUS_POINTS = {};
@@ -591,7 +717,7 @@
             'DEFAULT': {
                 name: 'General Campus',
                 hasLocations: false,
-                camera: { position: [0.7578, 4.6168, -6.4757], target: [12.8938, 2.2596, -5.5850] }
+                camera: { position: [18.0607, 5.2207, -1.8569], target: [8.6538, 3.2521, -4.6200] }
             }
         };
         
@@ -774,8 +900,6 @@
         // Initialize keyboard controls for fly mode
         function initKeyboardControls() {
             document.addEventListener('keydown', (event) => {
-                if (!isFlyMode) return;
-                
                 switch (event.code) {
                     case 'KeyW': moveForward = true; break;
                     case 'KeyS': moveBackward = true; break;
@@ -783,12 +907,17 @@
                     case 'KeyD': moveRight = true; break;
                     case 'KeyQ': moveUp = true; break;
                     case 'KeyE': moveDown = true; break;
+                    case 'Space': moveUp = true; event.preventDefault(); break;
+                    case 'ShiftLeft': 
+                    case 'ShiftRight': moveDown = true; event.preventDefault(); break;
+                    case 'Escape': 
+                        document.exitPointerLock(); 
+                        event.preventDefault(); 
+                        break;
                 }
             });
             
             document.addEventListener('keyup', (event) => {
-                if (!isFlyMode) return;
-                
                 switch (event.code) {
                     case 'KeyW': moveForward = false; break;
                     case 'KeyS': moveBackward = false; break;
@@ -796,8 +925,116 @@
                     case 'KeyD': moveRight = false; break;
                     case 'KeyQ': moveUp = false; break;
                     case 'KeyE': moveDown = false; break;
+                    case 'Space': moveUp = false; break;
+                    case 'ShiftLeft': 
+                    case 'ShiftRight': moveDown = false; break;
                 }
             });
+            
+            // Add touch and mouse controls
+            let isMouseLocked = false;
+            let isTouchDevice = 'ontouchstart' in window;
+            const canvas = renderer.domElement;
+            
+            if (!isTouchDevice) {
+                // Desktop mouse controls
+                canvas.addEventListener('click', () => {
+                    canvas.requestPointerLock();
+                });
+                
+                document.addEventListener('pointerlockchange', () => {
+                    isMouseLocked = document.pointerLockElement === canvas;
+                    document.body.style.cursor = isMouseLocked ? 'none' : 'default';
+                });
+                
+                document.addEventListener('mousemove', (event) => {
+                    if (!isMouseLocked) return;
+                    
+                    const sensitivity = 0.002;
+                    camera.rotation.y -= event.movementX * sensitivity;
+                    camera.rotation.x -= event.movementY * sensitivity;
+                    camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
+                });
+            } else {
+                // Mobile touch controls
+                let touchStartX = 0, touchStartY = 0;
+                let isLooking = false;
+                
+                canvas.addEventListener('touchstart', (event) => {
+                    event.preventDefault();
+                    if (event.touches.length === 1) {
+                        isLooking = true;
+                        touchStartX = event.touches[0].clientX;
+                        touchStartY = event.touches[0].clientY;
+                    }
+                });
+                
+                canvas.addEventListener('touchmove', (event) => {
+                    event.preventDefault();
+                    if (!isLooking || event.touches.length !== 1) return;
+                    
+                    const touch = event.touches[0];
+                    const deltaX = touch.clientX - touchStartX;
+                    const deltaY = touch.clientY - touchStartY;
+                    
+                    const sensitivity = 0.003;
+                    camera.rotation.y -= deltaX * sensitivity;
+                    camera.rotation.x -= deltaY * sensitivity;
+                    camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
+                    
+                    touchStartX = touch.clientX;
+                    touchStartY = touch.clientY;
+                });
+                
+                canvas.addEventListener('touchend', (event) => {
+                    event.preventDefault();
+                    isLooking = false;
+                });
+                
+                // Initialize mobile control buttons
+                initMobileControls();
+                
+                // Show touch instruction initially
+                const touchInstruction = document.getElementById('touch-instruction');
+                touchInstruction.classList.add('visible');
+                setTimeout(() => {
+                    touchInstruction.classList.remove('visible');
+                }, 3000);
+                
+                touchInstruction.addEventListener('click', () => {
+                    touchInstruction.classList.remove('visible');
+                });
+            }
+        }
+        
+        // Initialize mobile control buttons
+        function initMobileControls() {
+            const moveUpBtn = document.getElementById('move-up');
+            const moveDownBtn = document.getElementById('move-down');
+            const moveLeftBtn = document.getElementById('move-left');
+            const moveRightBtn = document.getElementById('move-right');
+            const flyUpBtn = document.getElementById('move-up-btn');
+            const flyDownBtn = document.getElementById('move-down-btn');
+            
+            // Movement buttons (forward/backward/left/right)
+            moveUpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveForward = true; });
+            moveUpBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveForward = false; });
+            
+            moveDownBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveBackward = true; });
+            moveDownBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveBackward = false; });
+            
+            moveLeftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveLeft = true; });
+            moveLeftBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveLeft = false; });
+            
+            moveRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveRight = true; });
+            moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; });
+            
+            // Fly Up/Down buttons
+            flyUpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveUp = true; });
+            flyUpBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveUp = false; });
+            
+            flyDownBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveDown = true; });
+            flyDownBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveDown = false; });
         }
         
         async function loadJSONData() {
@@ -814,16 +1051,7 @@
                 
                 // Populate CCIS locations from JSON
                 // These are the CCIS-specific locations (rooms, labs, etc.)
-                CCIS_LOCATIONS = Object.keys(jsonData.locations).filter(location => {
-                    const name = location.toLowerCase();
-                    return name.includes('room') || 
-                           name.includes('lab') || 
-                           name.includes('multimedia') || 
-                           name.includes('speech') || 
-                           name.includes('faculty') || 
-                           name.includes('deansoffice') || 
-                           name.includes('conference');
-                });
+                CCIS_LOCATIONS = Object.keys(jsonData.locations);
                 
                 console.log('CCIS Locations loaded:', CCIS_LOCATIONS);
                 
@@ -855,9 +1083,7 @@
                         ]
                     }
                 };
-                
-                // Fallback CCIS locations
-                CCIS_LOCATIONS = ['room301', 'room302', 'lab1', 'lab2'];
+            
             }
         }
         
@@ -1078,7 +1304,7 @@
             
             // Position camera behind the person
             const cameraDistance = 1.5;
-            const cameraHeight = 1.2;
+            const cameraHeight = 0.12;
             
             // Calculate camera position behind the person
             const cameraOffset = new THREE.Vector3(
@@ -1286,22 +1512,25 @@
             if (path) {
                 const pathCoordinates = path.map(p => new THREE.Vector3(p.x, p.y, p.z));
                 
-                const curve = new THREE.CatmullRomCurve3(pathCoordinates);
-                const tubeGeometry = new THREE.TubeGeometry(curve, pathCoordinates.length * 2, 0.005, 8, false);
-                const tubeMaterial = new THREE.MeshBasicMaterial({ 
+                // Use straight line segments instead of curved tubes
+                const geometry = new THREE.BufferGeometry().setFromPoints(pathCoordinates);
+                const material = new THREE.LineBasicMaterial({ 
                     color: 0x00ff00,
+                    linewidth: 5,
                     transparent: true,
                     opacity: 0.9
                 });
                 
-                pathLine = new THREE.Mesh(tubeGeometry, tubeMaterial);
+                pathLine = new THREE.Line(geometry, material);
                 scene.add(pathLine);
                 
                 currentPath = pathCoordinates;
                 
                 
-                // Position person at start
-                personModel.position.copy(pathCoordinates[0]);
+                // Position person at start (with height offset to keep above ground)
+                const startPosition = pathCoordinates[0].clone();
+                startPosition.y += 0.05; // Lift person slightly above ground
+                personModel.position.copy(startPosition);
                 personModel.visible = true;
                 
                 // Position camera at the start location
@@ -1320,12 +1549,12 @@
                 let cameraPosition;
                 if (currentViewMode === 'first-person') {
                     // First-person view: position camera at person's eye level
-                    const eyeLevel = 0.15; // Height of eyes from ground
+                    const eyeLevel = 0.12; // Height of eyes from ground
                     cameraPosition = startPoint.clone().add(new THREE.Vector3(0, eyeLevel, 0));
                 } else {
                     // Third-person view: position camera behind the person
                     const cameraDistance = 0.4;
-                    const cameraHeight = 0.2;
+                    const cameraHeight = 0.12;
                     const cameraOffset = new THREE.Vector3(
                         -personDirection.x * cameraDistance,
                         cameraHeight,
@@ -1357,7 +1586,9 @@
             cameraFollowing = true;
             
             if (currentPath.length > 0) {
-                personModel.position.copy(currentPath[0]);
+                const startPosition = currentPath[0].clone();
+                startPosition.y += 0.05; // Lift person slightly above ground
+                personModel.position.copy(startPosition);
             }
         }
         
@@ -1370,6 +1601,9 @@
                 scene.remove(pathLine);
                 pathLine = null;
             }
+            
+            // Clear arrival message if it exists
+            hideArrivalMessage();
             
             personModel.visible = false;
             
@@ -1491,11 +1725,11 @@
         }
         
         function updateCameraFollow() {
-            if (!cameraFollowing || !isWalking || isFlyMode) return;
+            if (!cameraFollowing || !isWalking) return;
             
             if (currentViewMode === 'first-person') {
                 // First-person view: position camera at person's eye level
-                const eyeLevel = 0.15; // Height of eyes from ground
+                const eyeLevel = 0.12; // Height of eyes from ground
                 const cameraOffset = new THREE.Vector3(0, eyeLevel, 0);
                 
                 // Set camera to person's position with eye level offset
@@ -1511,7 +1745,7 @@
             } else {
                 // Third-person view: position camera behind the person
                 const cameraDistance = 0.4;
-                const cameraHeight = 0.2;
+                const cameraHeight = 0.12;
                 
                 // Calculate camera position behind the person
                 const cameraOffset = new THREE.Vector3(
@@ -1535,26 +1769,69 @@
             }
         }
         
+        // Function to create and show arrival message as DOM overlay
+        function showArrivalMessage() {
+            console.log('showArrivalMessage called'); // Debug log
+            
+            // Create DOM overlay message
+            const messageDiv = document.createElement('div');
+            messageDiv.id = 'arrival-message';
+            messageDiv.innerHTML = 'You have reached your destination!';
+            messageDiv.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 255, 0, 0.9);
+                color: black;
+                padding: 20px 40px;
+                border-radius: 10px;
+                font-size: 24px;
+                font-weight: bold;
+                z-index: 10000;
+                box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+                border: 2px solid #00ff00;
+                text-align: center;
+                font-family: Arial, sans-serif;
+            `;
+            
+            document.body.appendChild(messageDiv);
+            console.log('DOM message added'); // Debug log
+            
+            // Auto-hide message after 4 seconds
+            setTimeout(() => {
+                hideArrivalMessage();
+            }, 4000);
+        }
+        
+        function hideArrivalMessage() {
+            const messageDiv = document.getElementById('arrival-message');
+            if (messageDiv) {
+                messageDiv.remove();
+                console.log('DOM message removed'); // Debug log
+            }
+        }
+        
         function animate() {
             requestAnimationFrame(animate);
             
             const delta = 0.0167; // Approximate 60fps
             
-            if (isFlyMode) {
-                updateFlyControls(delta);
-            } else {
-                controls.update(); // Update orbit controls
-            }
+            // Always use fly controls
+            updateFlyControls(delta);
             
             // Animate person walking
             if (isWalking && currentPath && currentPath.length > 1) {
-                const speedToUse = 0.002; // Fixed walking speed
+                const speedToUse = 0.0008; // Slower, more constant walking speed
                 walkingProgress += speedToUse;
 
                 if (walkingProgress >= 1) {
                     walkingProgress = 1;
                     isWalking = false;
                     cameraFollowing = false;
+                    // Show arrival message when destination is reached
+                    console.log('Destination reached!'); // Debug log
+                    showArrivalMessage();
                 }
                 
                 const totalLength = currentPath.length - 1;
@@ -1567,6 +1844,8 @@
                     const end = currentPath[index + 1];
                     
                     personModel.position.lerpVectors(start, end, fraction);
+                    // Add height offset to keep person above ground
+                    personModel.position.y += 0.05;
                     
                     personDirection = new THREE.Vector3().subVectors(end, start).normalize();
                     if (personDirection.length() > 0) {
