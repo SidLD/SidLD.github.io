@@ -133,10 +133,11 @@
         }
 
         .header-controls {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.8rem;
             flex: 1;
+            align-items: center;
         }
 
         .header-title {
@@ -224,7 +225,7 @@
 
         .dropdown {
             position: relative;
-            min-width: 150px;
+            min-width: 120px;
             z-index: 1000;
         }
 
@@ -232,13 +233,16 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.6rem;
+            padding: 0.5rem;
             background: rgba(50, 50, 80, 0.6);
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             transition: background 0.3s;
-            min-height: 36px;
-            font-size: 0.9rem;
+            min-height: 32px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .dropdown-header:hover {
@@ -292,7 +296,7 @@
         }
 
         .btn {
-            padding: 0.6rem 1rem;
+            padding: 0.5rem 0.8rem;
             background: rgba(50, 50, 80, 0.8);
             border: 1px solid #2a2a4a;
             border-radius: 6px;
@@ -300,11 +304,12 @@
             cursor: pointer;
             transition: all 0.3s;
             font-weight: 500;
-            min-height: 36px;
+            min-height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
+            white-space: nowrap;
         }
 
         .btn:hover {
@@ -332,7 +337,7 @@
         }
 
         .generate-path-btn {
-            padding: 0.6rem 1rem;
+            padding: 0.5rem 0.8rem;
             background: #4169E1;
             border: none;
             border-radius: 6px;
@@ -341,11 +346,12 @@
             font-weight: bold;
             transition: background 0.3s;
             border: 1px solid #2a2a4a;
-            min-height: 36px;
+            min-height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
+            white-space: nowrap;
         }
 
         .generate-path-btn:hover {
@@ -361,11 +367,12 @@
 
         .view-selector {
             display: flex;
-            gap: 0.3rem;
+            gap: 0.2rem;
+            grid-column: span 2;
         }
 
         .view-btn {
-            padding: 0.5rem 0.8rem;
+            padding: 0.4rem 0.6rem;
             background: rgba(50, 50, 80, 0.6);
             border: 1px solid #2a2a4a;
             border-radius: 4px;
@@ -373,7 +380,8 @@
             cursor: pointer;
             text-align: center;
             transition: all 0.3s;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
+            flex: 1;
         }
 
         .view-btn.active {
@@ -410,12 +418,14 @@
 
         .department-locations {
             display: none;
-            gap: 1rem;
+            grid-column: span 3;
+            gap: 0.8rem;
             align-items: center;
+            grid-template-columns: 1fr 1fr;
         }
 
         .department-locations.visible {
-            display: flex;
+            display: grid;
         }
 
         /* Mobile touch controls */
@@ -525,7 +535,8 @@
             
             .header-controls {
                 width: 100%;
-                flex-wrap: wrap;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.6rem;
             }
             
             .header-title {
@@ -534,17 +545,16 @@
             }
             
             .dropdown {
-                min-width: 120px;
+                min-width: 100px;
             }
             
             .department-locations {
-                flex-direction: column;
-                width: 100%;
+                grid-template-columns: 1fr;
                 gap: 0.5rem;
             }
             
-            .department-locations .dropdown {
-                width: 100%;
+            .view-selector {
+                grid-column: span 2;
             }
             
             .logo h1 {
@@ -734,6 +744,13 @@
         let direction = new THREE.Vector3();
         let speed = 5.0;
         
+        // Camera rotation animation variables
+        let targetRotationY = 0;
+        let targetRotationX = 0;
+        let currentRotationY = 0;
+        let currentRotationX = 0;
+        let rotationSpeed = 0.1; // How fast the camera rotates (lower = smoother)
+        
         // Resource tracking
         let resourcesLoaded = 0;
         let totalResources = 2; // JSON data and model
@@ -878,6 +895,12 @@
             controls.target.set(12.8938, 2.2596, -5.5850);
             controls.update();
             
+            // Initialize rotation values
+            currentRotationY = camera.rotation.y;
+            currentRotationX = camera.rotation.x;
+            targetRotationY = camera.rotation.y;
+            targetRotationX = camera.rotation.x;
+            
             // Handle window resize
             window.addEventListener('resize', onWindowResize, false);
             
@@ -913,6 +936,16 @@
                     case 'Escape': 
                         document.exitPointerLock(); 
                         event.preventDefault(); 
+                        break;
+                    case 'KeyR': 
+                        // Increase rotation speed (smoother)
+                        rotationSpeed = Math.min(rotationSpeed + 0.02, 0.3);
+                        console.log('Rotation speed increased to:', rotationSpeed);
+                        break;
+                    case 'KeyT': 
+                        // Decrease rotation speed (more cinematic)
+                        rotationSpeed = Math.max(rotationSpeed - 0.02, 0.02);
+                        console.log('Rotation speed decreased to:', rotationSpeed);
                         break;
                 }
             });
@@ -951,9 +984,9 @@
                     if (!isMouseLocked) return;
                     
                     const sensitivity = 0.002;
-                    camera.rotation.y -= event.movementX * sensitivity;
-                    camera.rotation.x -= event.movementY * sensitivity;
-                    camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
+                    targetRotationY -= event.movementX * sensitivity;
+                    targetRotationX -= event.movementY * sensitivity;
+                    targetRotationX = Math.max(-Math.PI/2, Math.min(Math.PI/2, targetRotationX));
                 });
             } else {
                 // Mobile touch controls
@@ -978,9 +1011,9 @@
                     const deltaY = touch.clientY - touchStartY;
                     
                     const sensitivity = 0.003;
-                    camera.rotation.y -= deltaX * sensitivity;
-                    camera.rotation.x -= deltaY * sensitivity;
-                    camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
+                    targetRotationY -= deltaX * sensitivity;
+                    targetRotationX -= deltaY * sensitivity;
+                    targetRotationX = Math.max(-Math.PI/2, Math.min(Math.PI/2, targetRotationX));
                     
                     touchStartX = touch.clientX;
                     touchStartY = touch.clientY;
@@ -1611,50 +1644,69 @@
         }
 
         // Load model with optimized loading (but don't add to scene)
-        async function loadModel() {
+     async function loadModel() {
   return new Promise((resolve, reject) => {
     try {
       const loader = new THREE.GLTFLoader();
 
-      loader.load(
-        'nwssu.glb',
-        (gltf) => {
-          const model = gltf.scene;
+      // Wrap GitHub release link with proxy
+    const modelUrls = [
+    "https://corsproxy.io/?" + encodeURIComponent(
+    "https://github.com/SidLD/SidLD.github.io/releases/download/nwssu/nwssu.glb"
+    ),
+    ];
 
-          // Scale to fit
-          const bbox = new THREE.Box3().setFromObject(model);
-          const size = bbox.getSize(new THREE.Vector3());
-          const maxDimension = Math.max(size.x, size.y, size.z);
-          const scale = 50 / maxDimension;
-          model.scale.setScalar(scale);
+      const tryLoadModel = (urlIndex = 0) => {
+    if (urlIndex >= modelUrls.length) {
+    console.error("All model URLs failed, creating placeholder");
+    const placeholder = createPlaceholderModel();
+    resolve(placeholder);
+    return;
+    }
 
-          model.traverse((child) => {
-            if (child.isMesh) {
-              child.castShadow = true;
-              child.receiveShadow = true;
+        const currentUrl = modelUrls[urlIndex];
+        console.log(`Trying to load model from: ${currentUrl}`);
+
+        loader.load(
+          currentUrl,
+          (gltf) => {
+            const model = gltf.scene;
+
+            // Scale to fit
+            const bbox = new THREE.Box3().setFromObject(model);
+            const size = bbox.getSize(new THREE.Vector3());
+            const maxDimension = Math.max(size.x, size.y, size.z);
+            const scale = 50 / maxDimension;
+            model.scale.setScalar(scale);
+
+            model.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+
+            resolve(model);
+          },
+          (xhr) => {
+            if (xhr.total) {
+              const percent = Math.round((xhr.loaded / xhr.total) * 100);
+              const progressFill = document.getElementById("progress-fill");
+              const progressText = document.getElementById("progress-text");
+
+              const overallPercent = 40 + (percent * 0.6);
+              if (progressFill) progressFill.style.width = `${overallPercent}%`;
+              if (progressText) progressText.textContent = `Loading model: ${percent}%`;
             }
-          });
-
-          resolve(model);
-        },
-        (xhr) => {
-          if (xhr.total) {
-            const percent = Math.round((xhr.loaded / xhr.total) * 100);
-            const progressFill = document.getElementById("progress-fill");
-            const progressText = document.getElementById("progress-text");
-
-            const overallPercent = 40 + (percent * 0.6);
-            if (progressFill) progressFill.style.width = `${overallPercent}%`;
-            if (progressText) progressText.textContent = `Loading model: ${percent}%`;
+          },
+          (error) => {
+            console.error(`Error loading model from ${currentUrl}:`, error);
+            tryLoadModel(urlIndex + 1);
           }
-        },
-        (error) => {
-          console.error('Error loading model from nwssu.glb:', error);
-          console.log('Creating placeholder model instead...');
-          const placeholder = createPlaceholderModel();
-          resolve(placeholder);
-        }
-      );
+        );
+      };
+
+      tryLoadModel(0);
 
     } catch (error) {
       console.error("Exception in model loading:", error);
@@ -1706,6 +1758,15 @@
         }
         
         function updateFlyControls(delta) {
+            // Smooth camera rotation animation
+            const rotationDelta = rotationSpeed;
+            currentRotationY = THREE.MathUtils.lerp(currentRotationY, targetRotationY, rotationDelta);
+            currentRotationX = THREE.MathUtils.lerp(currentRotationX, targetRotationX, rotationDelta);
+            
+            // Apply the smoothed rotation
+            camera.rotation.y = currentRotationY;
+            camera.rotation.x = currentRotationX;
+            
             velocity.x -= velocity.x * 10.0 * delta;
             velocity.y -= velocity.y * 10.0 * delta;
             velocity.z -= velocity.z * 10.0 * delta;
@@ -1735,9 +1796,17 @@
                 // Set camera to person's position with eye level offset
                 camera.position.copy(personModel.position).add(cameraOffset);
                 
-                // Look in the direction the person is moving
+                // Look in the direction the person is moving with smooth rotation
                 const lookAtPoint = personModel.position.clone().add(personDirection);
-                camera.lookAt(lookAtPoint);
+                
+                // Calculate target rotation for smooth turning
+                const direction = lookAtPoint.clone().sub(camera.position).normalize();
+                const targetY = Math.atan2(-direction.x, -direction.z);
+                const targetX = Math.asin(direction.y);
+                
+                // Smoothly interpolate to target rotation
+                targetRotationY = targetY;
+                targetRotationX = targetX;
                 
                 // Update controls target to maintain smooth camera movement
                 controls.target.copy(lookAtPoint);
@@ -1759,9 +1828,17 @@
                 // Smoothly move camera to new position with higher lerp factor for smoother following
                 camera.position.lerp(cameraPosition, 0.3);
                 
-                // Look in the same direction as the person is looking
+                // Look in the same direction as the person is looking with smooth rotation
                 const lookAtPoint = personModel.position.clone().add(personDirection);
-                camera.lookAt(lookAtPoint);
+                
+                // Calculate target rotation for smooth turning
+                const direction = lookAtPoint.clone().sub(camera.position).normalize();
+                const targetY = Math.atan2(-direction.x, -direction.z);
+                const targetX = Math.asin(direction.y);
+                
+                // Smoothly interpolate to target rotation
+                targetRotationY = targetY;
+                targetRotationX = targetX;
                 
                 // Update controls target
                 controls.target.copy(lookAtPoint);
