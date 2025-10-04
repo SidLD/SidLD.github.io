@@ -365,29 +365,6 @@
             transform: none;
         }
 
-        .view-selector {
-            display: flex;
-            gap: 0.2rem;
-            grid-column: span 2;
-        }
-
-        .view-btn {
-            padding: 0.4rem 0.6rem;
-            background: rgba(50, 50, 80, 0.6);
-            border: 1px solid #2a2a4a;
-            border-radius: 4px;
-            color: white;
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.3s;
-            font-size: 0.75rem;
-            flex: 1;
-        }
-
-        .view-btn.active {
-            background: #4169E1;
-            box-shadow: 0 0 10px rgba(65, 105, 225, 0.5);
-        }
 
         .location-highlight {
             position: absolute;
@@ -428,104 +405,6 @@
             display: grid;
         }
 
-        /* Mobile touch controls */
-        .mobile-controls {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            display: none;
-            justify-content: space-between;
-            align-items: flex-end;
-            z-index: 1000;
-            pointer-events: none;
-        }
-        
-        .mobile-controls.visible {
-            display: flex;
-        }
-        
-        .movement-pad, .action-buttons {
-            pointer-events: all;
-        }
-        
-        .movement-pad {
-            position: relative;
-            width: 120px;
-            height: 120px;
-        }
-        
-        .move-btn {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            background: rgba(65, 105, 225, 0.8);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            user-select: none;
-            touch-action: manipulation;
-        }
-        
-        .move-btn:active {
-            background: rgba(65, 105, 225, 1);
-            transform: scale(0.95);
-        }
-        
-        .move-btn.up { top: 0; left: 40px; }
-        .move-btn.down { bottom: 0; left: 40px; }
-        .move-btn.left { top: 40px; left: 0; }
-        .move-btn.right { top: 40px; right: 0; }
-        
-        .action-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .action-btn {
-            width: 50px;
-            height: 50px;
-            background: rgba(106, 90, 205, 0.8);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            user-select: none;
-            touch-action: manipulation;
-        }
-        
-        .action-btn:active {
-            background: rgba(106, 90, 205, 1);
-            transform: scale(0.95);
-        }
-        
-        .touch-instruction {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            z-index: 1001;
-            display: none;
-        }
-        
-        .touch-instruction.visible {
-            display: block;
-        }
 
         @media (max-width: 768px) {
             header {
@@ -553,17 +432,11 @@
                 gap: 0.5rem;
             }
             
-            .view-selector {
-                grid-column: span 2;
-            }
             
             .logo h1 {
                 font-size: 2.5rem;
             }
             
-            .mobile-controls {
-                display: flex;
-            }
         }
     </style>
 </head>
@@ -633,10 +506,6 @@
                 
                 <button id="start-path" class="generate-path-btn" disabled>Start</button>
                 
-                <div class="view-selector">
-                    <button class="view-btn active" data-view="first-person">1st Person</button>
-                    <button class="view-btn" data-view="third-person">3rd Person</button>
-                </div>
             </div>
             
             <div class="header-title">
@@ -655,27 +524,6 @@
             </div>
         </div>
         
-        <!-- Mobile Controls -->
-        <div class="mobile-controls" id="mobile-controls">
-            <div class="movement-pad">
-                <div class="move-btn up" id="move-up">↑</div>
-                <div class="move-btn down" id="move-down">↓</div>
-                <div class="move-btn left" id="move-left">←</div>
-                <div class="move-btn right" id="move-right">→</div>
-            </div>
-            <div class="action-buttons">
-                <div class="action-btn" id="move-up-btn">UP</div>
-                <div class="action-btn" id="move-down-btn">DN</div>
-            </div>
-        </div>
-        
-        <!-- Touch Instruction -->
-        <div class="touch-instruction" id="touch-instruction">
-            <h3>Touch Controls</h3>
-            <p>• Drag on screen to look around</p>
-            <p>• Use buttons to move</p>
-            <p>• Tap to dismiss</p>
-        </div>
     </div>
 
     <!-- Using UMD versions for compatibility -->
@@ -700,7 +548,6 @@
         let cameraFollowing = false;
         let isFlyMode = true;
         let personDirection = new THREE.Vector3(0, 0, 1);
-        let currentViewMode = 'first-person';
         let arrivalMessage = null;
         
         // JSON data variables
@@ -734,22 +581,7 @@
         // CCIS-specific locations (these will be populated from JSON)
         let CCIS_LOCATIONS = [];
         
-        let moveForward = false;
-        let moveBackward = false;
-        let moveLeft = false;
-        let moveRight = false;
-        let moveUp = false;
-        let moveDown = false;
-        let velocity = new THREE.Vector3();
-        let direction = new THREE.Vector3();
-        let speed = 5.0;
         
-        // Camera rotation animation variables
-        let targetRotationY = 0;
-        let targetRotationX = 0;
-        let currentRotationY = 0;
-        let currentRotationX = 0;
-        let rotationSpeed = 0.1; // How fast the camera rotates (lower = smoother)
         
         // Resource tracking
         let resourcesLoaded = 0;
@@ -895,16 +727,11 @@
             controls.target.set(12.8938, 2.2596, -5.5850);
             controls.update();
             
-            // Initialize rotation values
-            currentRotationY = camera.rotation.y;
-            currentRotationX = camera.rotation.x;
-            targetRotationY = camera.rotation.y;
-            targetRotationX = camera.rotation.x;
             
             // Handle window resize
             window.addEventListener('resize', onWindowResize, false);
             
-            // Initialize keyboard controls for fly mode
+            // Initialize basic keyboard controls
             initKeyboardControls();
             
             // Create person model
@@ -920,154 +747,16 @@
             document.getElementById('loading').classList.add('hidden');
         }
         
-        // Initialize keyboard controls for fly mode
+        // Initialize basic keyboard controls
         function initKeyboardControls() {
-            document.addEventListener('keydown', (event) => {
-                switch (event.code) {
-                    case 'KeyW': moveForward = true; break;
-                    case 'KeyS': moveBackward = true; break;
-                    case 'KeyA': moveLeft = true; break;
-                    case 'KeyD': moveRight = true; break;
-                    case 'KeyQ': moveUp = true; break;
-                    case 'KeyE': moveDown = true; break;
-                    case 'Space': moveUp = true; event.preventDefault(); break;
-                    case 'ShiftLeft': 
-                    case 'ShiftRight': moveDown = true; event.preventDefault(); break;
-                    case 'Escape': 
-                        document.exitPointerLock(); 
-                        event.preventDefault(); 
-                        break;
-                    case 'KeyR': 
-                        // Increase rotation speed (smoother)
-                        rotationSpeed = Math.min(rotationSpeed + 0.02, 0.3);
-                        console.log('Rotation speed increased to:', rotationSpeed);
-                        break;
-                    case 'KeyT': 
-                        // Decrease rotation speed (more cinematic)
-                        rotationSpeed = Math.max(rotationSpeed - 0.02, 0.02);
-                        console.log('Rotation speed decreased to:', rotationSpeed);
-                        break;
-                }
-            });
-            
-            document.addEventListener('keyup', (event) => {
-                switch (event.code) {
-                    case 'KeyW': moveForward = false; break;
-                    case 'KeyS': moveBackward = false; break;
-                    case 'KeyA': moveLeft = false; break;
-                    case 'KeyD': moveRight = false; break;
-                    case 'KeyQ': moveUp = false; break;
-                    case 'KeyE': moveDown = false; break;
-                    case 'Space': moveUp = false; break;
-                    case 'ShiftLeft': 
-                    case 'ShiftRight': moveDown = false; break;
-                }
-            });
-            
-            // Add touch and mouse controls
-            let isMouseLocked = false;
-            let isTouchDevice = 'ontouchstart' in window;
-            const canvas = renderer.domElement;
-            
-            if (!isTouchDevice) {
-                // Desktop mouse controls
-                canvas.addEventListener('click', () => {
-                    canvas.requestPointerLock();
-                });
-                
-                document.addEventListener('pointerlockchange', () => {
-                    isMouseLocked = document.pointerLockElement === canvas;
-                    document.body.style.cursor = isMouseLocked ? 'none' : 'default';
-                });
-                
-                document.addEventListener('mousemove', (event) => {
-                    if (!isMouseLocked) return;
-                    
-                    const sensitivity = 0.002;
-                    targetRotationY -= event.movementX * sensitivity;
-                    targetRotationX -= event.movementY * sensitivity;
-                    targetRotationX = Math.max(-Math.PI/2, Math.min(Math.PI/2, targetRotationX));
-                });
-            } else {
-                // Mobile touch controls
-                let touchStartX = 0, touchStartY = 0;
-                let isLooking = false;
-                
-                canvas.addEventListener('touchstart', (event) => {
-                    event.preventDefault();
-                    if (event.touches.length === 1) {
-                        isLooking = true;
-                        touchStartX = event.touches[0].clientX;
-                        touchStartY = event.touches[0].clientY;
-                    }
-                });
-                
-                canvas.addEventListener('touchmove', (event) => {
-                    event.preventDefault();
-                    if (!isLooking || event.touches.length !== 1) return;
-                    
-                    const touch = event.touches[0];
-                    const deltaX = touch.clientX - touchStartX;
-                    const deltaY = touch.clientY - touchStartY;
-                    
-                    const sensitivity = 0.003;
-                    targetRotationY -= deltaX * sensitivity;
-                    targetRotationX -= deltaY * sensitivity;
-                    targetRotationX = Math.max(-Math.PI/2, Math.min(Math.PI/2, targetRotationX));
-                    
-                    touchStartX = touch.clientX;
-                    touchStartY = touch.clientY;
-                });
-                
-                canvas.addEventListener('touchend', (event) => {
-                    event.preventDefault();
-                    isLooking = false;
-                });
-                
-                // Initialize mobile control buttons
-                initMobileControls();
-                
-                // Show touch instruction initially
-                const touchInstruction = document.getElementById('touch-instruction');
-                touchInstruction.classList.add('visible');
-                setTimeout(() => {
-                    touchInstruction.classList.remove('visible');
-                }, 3000);
-                
-                touchInstruction.addEventListener('click', () => {
-                    touchInstruction.classList.remove('visible');
-                });
-            }
+            // No keyboard controls needed - just orbit controls
         }
+            
+            // No additional touch/mouse controls - just use orbit control
         
         // Initialize mobile control buttons
         function initMobileControls() {
-            const moveUpBtn = document.getElementById('move-up');
-            const moveDownBtn = document.getElementById('move-down');
-            const moveLeftBtn = document.getElementById('move-left');
-            const moveRightBtn = document.getElementById('move-right');
-            const flyUpBtn = document.getElementById('move-up-btn');
-            const flyDownBtn = document.getElementById('move-down-btn');
-            
-            // Movement buttons (forward/backward/left/right)
-            moveUpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveForward = true; });
-            moveUpBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveForward = false; });
-            
-            moveDownBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveBackward = true; });
-            moveDownBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveBackward = false; });
-            
-            moveLeftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveLeft = true; });
-            moveLeftBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveLeft = false; });
-            
-            moveRightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveRight = true; });
-            moveRightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; });
-            
-            // Fly Up/Down buttons
-            flyUpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveUp = true; });
-            flyUpBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveUp = false; });
-            
-            flyDownBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveDown = true; });
-            flyDownBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveDown = false; });
+            // No mobile controls needed - just orbit controls
         }
         
         async function loadJSONData() {
@@ -1258,19 +947,6 @@
             // Button events
             document.getElementById('start-path').addEventListener('click', startPath);
             
-            // View mode selection
-            document.querySelectorAll('.view-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    currentViewMode = this.dataset.view;
-                    
-                    // Update camera position based on view mode
-                    if (currentViewMode === 'third-person' && personModel && personModel.visible) {
-                        setupThirdPersonCamera();
-                    }
-                });
-            });
         }
         
         function moveCameraToDepartment(departmentKey) {
@@ -1279,12 +955,11 @@
                 const cameraPos = department.camera.position;
                 const cameraTarget = department.camera.target;
                 
-                // Animate camera to department position
-                animateCamera(
-                    [cameraPos[0], cameraPos[1], cameraPos[2]],
-                    [cameraTarget[0], cameraTarget[1], cameraTarget[2]],
-                    1000
-                );
+                // Position camera and look at target
+                camera.position.set(cameraPos[0], cameraPos[1], cameraPos[2]);
+                camera.lookAt(cameraTarget[0], cameraTarget[1], cameraTarget[2]);
+                controls.target.set(cameraTarget[0], cameraTarget[1], cameraTarget[2]);
+                controls.update();
             }
         }
         
@@ -1331,30 +1006,6 @@
             generateBtn.disabled = !canGenerate;
         }
         
-        // Setup third person camera view
-        function setupThirdPersonCamera() {
-            if (!personModel || !currentPath) return;
-            
-            // Position camera behind the person
-            const cameraDistance = 1.5;
-            const cameraHeight = 0.12;
-            
-            // Calculate camera position behind the person
-            const cameraOffset = new THREE.Vector3(
-                -personDirection.x * cameraDistance,
-                cameraHeight,
-                -personDirection.z * cameraDistance
-            );
-            
-            const cameraPosition = personModel.position.clone().add(cameraOffset);
-            
-            // Smoothly move camera to new position
-            animateCamera(
-                [cameraPosition.x, cameraPosition.y, cameraPosition.z],
-                [personModel.position.x, personModel.position.y + 1, personModel.position.z],
-                500
-            );
-        }
         
         // Create person model - Adjusted to be smaller
         function createPersonModel() {
@@ -1416,45 +1067,13 @@
             const targetPosition = new THREE.Vector3(lookoutPoint.x, lookoutPoint.y + 2, lookoutPoint.z + 5);
             const lookAtPosition = new THREE.Vector3(lookoutPoint.x, lookoutPoint.y, lookoutPoint.z);
             
-            animateCamera(
-                [targetPosition.x, targetPosition.y, targetPosition.z],
-                [lookAtPosition.x, lookAtPosition.y, lookAtPosition.z],
-                1000
-            );
+            // Position camera and look at target
+            camera.position.copy(targetPosition);
+            camera.lookAt(lookAtPosition);
+            controls.target.copy(lookAtPosition);
+            controls.update();
         }
         
-        // Camera animation function
-        function animateCamera(targetPosition, targetLookAt, duration = 1000) {
-            return new Promise((resolve) => {
-                const startPosition = camera.position.clone();
-                const startTarget = controls.target.clone();
-                const endPosition = new THREE.Vector3(...targetPosition);
-                const endTarget = new THREE.Vector3(...targetLookAt);
-                const startTime = Date.now();
-                
-                function updateCamera() {
-                    const elapsed = Date.now() - startTime;
-                    const progress = Math.min(elapsed / duration, 1);
-                    
-                    // Smooth step
-                    const ease = progress < 0.5 
-                        ? 4 * progress * progress * progress 
-                        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-                    
-                    camera.position.lerpVectors(startPosition, endPosition, ease);
-                    controls.target.lerpVectors(startTarget, endTarget, ease);
-                    controls.update();
-                    
-                    if (progress < 1) {
-                        requestAnimationFrame(updateCamera);
-                    } else {
-                        resolve();
-                    }
-                }
-                
-                requestAnimationFrame(updateCamera);
-            });
-        }
 
         function startPath() {
             // Check if we have the required selections based on department
@@ -1578,33 +1197,18 @@
                     lookAtPoint = startPoint.clone().add(new THREE.Vector3(0, 0, 1));
                 }
                 
-                // Calculate camera position based on view mode
-                let cameraPosition;
-                if (currentViewMode === 'first-person') {
-                    // First-person view: position camera at person's eye level
-                    const eyeLevel = 0.12; // Height of eyes from ground
-                    cameraPosition = startPoint.clone().add(new THREE.Vector3(0, eyeLevel, 0));
-                } else {
-                    // Third-person view: position camera behind the person
-                    const cameraDistance = 0.4;
-                    const cameraHeight = 0.12;
-                    const cameraOffset = new THREE.Vector3(
-                        -personDirection.x * cameraDistance,
-                        cameraHeight,
-                        -personDirection.z * cameraDistance
-                    );
-                    cameraPosition = startPoint.clone().add(cameraOffset);
-                }
+                // First-person view: position camera at person's eye level
+                const eyeLevel = 1.6; // Human eye level height
+                const cameraPosition = startPoint.clone().add(new THREE.Vector3(0, eyeLevel, 0));
                 
-                // Animate camera to start position
-                animateCamera(
-                    [cameraPosition.x, cameraPosition.y, cameraPosition.z],
-                    [lookAtPoint.x, lookAtPoint.y, lookAtPoint.z],
-                    1000
-                ).then(() => {
-                    // Automatically start walking after camera animation
-                    startWalking();
-                });
+                // Position camera at start position
+                camera.position.copy(cameraPosition);
+                camera.lookAt(lookAtPoint);
+                controls.target.copy(lookAtPoint);
+                controls.update();
+                
+                // Automatically start walking
+                startWalking();
             }
         }
 
@@ -1657,7 +1261,7 @@
     ];
 
       const tryLoadModel = (urlIndex = 0) => {
-    if (urlIndex >= modelUrls.length) {
+if (urlIndex >= modelUrls.length) {
     console.error("All model URLs failed, creating placeholder");
     const placeholder = createPlaceholderModel();
     resolve(placeholder);
@@ -1757,48 +1361,21 @@
             renderer.setSize(document.getElementById('canvas-container').offsetWidth, document.getElementById('canvas-container').offsetHeight);
         }
         
-        function updateFlyControls(delta) {
-            // Smooth camera rotation animation
-            const rotationDelta = rotationSpeed;
-            currentRotationY = THREE.MathUtils.lerp(currentRotationY, targetRotationY, rotationDelta);
-            currentRotationX = THREE.MathUtils.lerp(currentRotationX, targetRotationX, rotationDelta);
-            
-            // Apply the smoothed rotation
-            camera.rotation.y = currentRotationY;
-            camera.rotation.x = currentRotationX;
-            
-            velocity.x -= velocity.x * 10.0 * delta;
-            velocity.y -= velocity.y * 10.0 * delta;
-            velocity.z -= velocity.z * 10.0 * delta;
-            
-            direction.z = Number(moveForward) - Number(moveBackward);
-            direction.x = Number(moveRight) - Number(moveLeft);
-            direction.y = Number(moveUp) - Number(moveDown);
-            direction.normalize();
-            
-            if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-            if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
-            if (moveUp || moveDown) velocity.y -= direction.y * speed * delta;
-            
-            camera.translateX(velocity.x * delta);
-            camera.translateY(velocity.y * delta);
-            camera.translateZ(velocity.z * delta);
+        function updateCameraRotation(delta) {
+            // No camera rotation updates needed - orbit controls handle everything
         }
         
         function updateCameraFollow() {
             if (!cameraFollowing || !isWalking) return;
+            const eyeLevel = 0.12; // Height of eyes from ground
+            const cameraOffset = new THREE.Vector3(0, eyeLevel, 0);
             
-            if (currentViewMode === 'first-person') {
-                // First-person view: position camera at person's eye level
-                const eyeLevel = 0.12; // Height of eyes from ground
-                const cameraOffset = new THREE.Vector3(0, eyeLevel, 0);
-                
-                // Set camera to person's position with eye level offset
-                camera.position.copy(personModel.position).add(cameraOffset);
-                
-                // Look in the direction the person is moving with smooth rotation
-                const lookAtPoint = personModel.position.clone().add(personDirection);
-                
+            // Set camera to person's position with eye level offset
+            camera.position.copy(personModel.position).add(cameraOffset);
+            
+            // Look in the direction the person is moving with smooth rotation
+            const lookAtPoint = personModel.position.clone().add(personDirection);
+            
                 // Calculate target rotation for smooth turning
                 const direction = lookAtPoint.clone().sub(camera.position).normalize();
                 const targetY = Math.atan2(-direction.x, -direction.z);
@@ -1811,39 +1388,6 @@
                 // Update controls target to maintain smooth camera movement
                 controls.target.copy(lookAtPoint);
                 controls.update();
-            } else {
-                // Third-person view: position camera behind the person
-                const cameraDistance = 0.4;
-                const cameraHeight = 0.12;
-                
-                // Calculate camera position behind the person
-                const cameraOffset = new THREE.Vector3(
-                    -personDirection.x * cameraDistance,
-                    cameraHeight,
-                    -personDirection.z * cameraDistance
-                );
-                
-                const cameraPosition = personModel.position.clone().add(cameraOffset);
-                
-                // Smoothly move camera to new position with higher lerp factor for smoother following
-                camera.position.lerp(cameraPosition, 0.3);
-                
-                // Look in the same direction as the person is looking with smooth rotation
-                const lookAtPoint = personModel.position.clone().add(personDirection);
-                
-                // Calculate target rotation for smooth turning
-                const direction = lookAtPoint.clone().sub(camera.position).normalize();
-                const targetY = Math.atan2(-direction.x, -direction.z);
-                const targetX = Math.asin(direction.y);
-                
-                // Smoothly interpolate to target rotation
-                targetRotationY = targetY;
-                targetRotationX = targetX;
-                
-                // Update controls target
-                controls.target.copy(lookAtPoint);
-                controls.update();
-            }
         }
         
         // Function to create and show arrival message as DOM overlay
@@ -1894,8 +1438,8 @@
             
             const delta = 0.0167; // Approximate 60fps
             
-            // Always use fly controls
-            updateFlyControls(delta);
+            // Update camera rotation only
+            updateCameraRotation(delta);
             
             // Animate person walking
             if (isWalking && currentPath && currentPath.length > 1) {
