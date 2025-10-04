@@ -550,6 +550,64 @@
         let personDirection = new THREE.Vector3(0, 0, 1);
         let arrivalMessage = null;
         
+        // Camera positions for different stair areas
+        const CAMERA_POSITIONS = {
+            "floor_1_1": {
+                "position": [-12.0453, 0.8356, 0.6005],
+                "target": [-16.6525, 1.8125, 9.422]
+            },
+            "floor_1_2": {
+                "position": [-12.0453, 0.8856, 0.6005],
+                "target": [-19.9398, -0.4321, 6.5956]
+            },
+            "floor_1_3": {
+                "position": [-12.1189, 1.0789, 0.6679],
+                "target": [-17.7595, 1.1175, 8.9251]
+            },
+            "floor_2_2": {
+                "position": [-15.8478, 0.9141, 0.7219],
+                "target": [-10.271, -1.7354, 8.5883]
+            },
+            "floor_2_3": {
+                "position": [-15.8478, 1.2141, 0.7219],
+                "target": [-11.5703, -2.31, 9.0456]
+            },
+            "floor_3_3": {
+                "position": [-18.7197, 1.1725, 0.7182],
+                "target": [-21.6955, -2.6122, 9.4829]
+            },
+            "floor_3_2": {
+                "position": [-18.7197, 0.9225, 0.7182],
+                "target": [-21.5813, -2.3193, 9.735]
+            }
+        };
+        
+        let isStairView = false;
+        let currentStairPosition = null;
+        
+        // Function to check if person is near stair coordinates and get appropriate camera position
+        function getStairCameraPosition(position) {
+            // Define proximity thresholds for different coordinates
+            const xThreshold = 0.5; // X coordinate threshold
+            const yThreshold = 0.3; // Y coordinate threshold
+            const zThreshold = 0.7; // Z coordinate threshold (using same as X)
+            
+            for (const [areaName, cameraPos] of Object.entries(CAMERA_POSITIONS)) {
+                const cameraPosition = new THREE.Vector3(...cameraPos.position);
+                
+                // Check if within threshold for each coordinate
+                const xDiff = Math.abs(position.x - cameraPosition.x);
+                const yDiff = Math.abs(position.y - cameraPosition.y);
+                const zDiff = Math.abs(position.z - cameraPosition.z);
+                
+                if (xDiff <= xThreshold && yDiff <= yThreshold && zDiff <= zThreshold) {
+                    return areaName;
+                }
+            }
+            
+            return null; // Not near any stair area
+        }
+        
         // JSON data variables
         let CAMPUS_POINTS = {};
         let PREDEFINED_PATHS = {};
@@ -1248,7 +1306,7 @@
         }
 
         // Load model with optimized loading (but don't add to scene)
-     async function loadModel() {
+        async function loadModel() {
   return new Promise((resolve, reject) => {
     try {
       const loader = new THREE.GLTFLoader();
@@ -1367,27 +1425,36 @@ if (urlIndex >= modelUrls.length) {
         
         function updateCameraFollow() {
             if (!cameraFollowing || !isWalking) return;
+            
+            // Check if person is near any stair camera position
+            const stairArea = getStairCameraPosition(personModel.position);
+            
+            if (stairArea) {
+                // Use the specific camera position and target for this stair area
+                const cameraPos = CAMERA_POSITIONS[stairArea];
+                if (cameraPos) {
+                    camera.position.set(...cameraPos.position);
+                    camera.lookAt(...cameraPos.target);
+                    controls.target.set(...cameraPos.target);
+                    controls.update();
+                    return;
+                }
+            }
+            
+            // Default first-person view: camera at person's eye level
             const eyeLevel = 0.12; // Height of eyes from ground
             const cameraOffset = new THREE.Vector3(0, eyeLevel, 0);
             
             // Set camera to person's position with eye level offset
             camera.position.copy(personModel.position).add(cameraOffset);
             
-            // Look in the direction the person is moving with smooth rotation
+            // Look in the direction the person is moving
             const lookAtPoint = personModel.position.clone().add(personDirection);
+            camera.lookAt(lookAtPoint);
             
-                // Calculate target rotation for smooth turning
-                const direction = lookAtPoint.clone().sub(camera.position).normalize();
-                const targetY = Math.atan2(-direction.x, -direction.z);
-                const targetX = Math.asin(direction.y);
-                
-                // Smoothly interpolate to target rotation
-                targetRotationY = targetY;
-                targetRotationX = targetX;
-                
-                // Update controls target to maintain smooth camera movement
-                controls.target.copy(lookAtPoint);
-                controls.update();
+            // Update controls target to maintain smooth camera movement
+            controls.target.copy(lookAtPoint);
+            controls.update();
         }
         
         // Function to create and show arrival message as DOM overlay

@@ -653,13 +653,13 @@
                         <h4>Fly Mode Controls:</h4>
                         <ul style="margin: 0; padding-left: 15px; font-size: 0.75rem;">
                             <li>WASD: Move forward/back/left/right</li>
-                            <li>Q/E: Move up/down</li>
+                            <li>Space: Move up</li>
+                            <li>Shift: Move down</li>
                             <li>Mouse: Look around</li>
-                            <li>Shift: Move faster</li>
                         </ul>
                         <div class="fly-speed-control">
                             <label for="fly-speed">Fly Speed:</label>
-                            <input type="range" id="fly-speed" min="0.1" max="2" step="0.1" value="0.5">
+                            <input type="range" id="fly-speed" min="0.05" max="0.5" step="0.05" value="0.1">
                         </div>
                     </div>
                 </div>
@@ -676,6 +676,26 @@
                     <button id="print-coordinates" class="camera-btn" style="margin-top: 15px; width: 100%;">
                         Print Current Camera
                     </button>
+                </div>
+
+                <div class="control-group">
+                    <h2>Save Camera Position</h2>
+                    <div class="instructions">
+                        <h3>Save Current View:</h3>
+                        <p style="font-size: 0.8rem; margin-bottom: 8px;">Position your camera and enter a name like "stair1_1" (first stair, first floor)</p>
+                    </div>
+                    
+                    <input type="text" id="camera-position-name" class="name-input" placeholder="Enter position name (e.g., stair1_1)">
+                    <button id="save-camera-position" class="track-btn" style="width: 100%; margin-bottom: 8px;">Save Current Position</button>
+                    
+                    <div class="point-list" id="saved-positions-list" style="max-height: 150px;">
+                        <p style="text-align: center; opacity: 0.6; padding: 20px;">No positions saved yet</p>
+                    </div>
+                    
+                    <div class="export-section">
+                        <button id="export-positions" class="export-btn">Export Camera Positions</button>
+                        <button id="copy-positions" class="export-btn">Copy to Clipboard</button>
+                    </div>
                 </div>
 
                 <div class="control-group">
@@ -715,6 +735,36 @@
                 </div>
 
                 <div class="control-group">
+                    <h2>Coordinate Ranges</h2>
+                    <div class="coordinate-display" id="range-display">
+                        <div class="coordinate-item">
+                            <span class="coordinate-label">X Range:</span>
+                            <span class="coordinate-value" id="x-range">0.0000 - 0.0000</span>
+                        </div>
+                        <div class="coordinate-item">
+                            <span class="coordinate-label">Y Range:</span>
+                            <span class="coordinate-value" id="y-range">0.0000 - 0.0000</span>
+                        </div>
+                        <div class="coordinate-item">
+                            <span class="coordinate-label">Z Range:</span>
+                            <span class="coordinate-value" id="z-range">0.0000 - 0.0000</span>
+                        </div>
+                    </div>
+                    <button id="update-ranges" class="track-btn" style="width: 100%; margin-top: 8px;">Update Ranges</button>
+                </div>
+
+                <div class="control-group">
+                    <h2>Stair Area Detection</h2>
+                    <div class="instructions">
+                        <h3>Stair Areas:</h3>
+                        <div id="stair-areas">
+                            <p style="opacity: 0.6; font-size: 0.8rem;">Click "Detect Stair Areas" to analyze collected points</p>
+                        </div>
+                    </div>
+                    <button id="detect-stairs" class="track-btn" style="width: 100%;">Detect Stair Areas</button>
+                </div>
+
+                <div class="control-group">
                     <h2>Collected Points</h2>
                     <div class="point-list" id="point-list">
                         <p style="text-align: center; opacity: 0.6; padding: 20px;">No points collected yet</p>
@@ -739,6 +789,99 @@
         let collectedPoints = [];
         let currentClickPoint = null;
         let clickMarker = null;
+        let savedCameraPositions = [];
+        let coordinateRanges = {
+            x: { min: 0, max: 0 },
+            y: { min: 0, max: 0 },
+            z: { min: 0, max: 0 }
+        };
+
+        const CAMERA_POSITIONS = {
+            "floor_1_1": {
+                "position": [
+                    -12.0453,
+                    0.8356,
+                    0.6005
+                ],
+                "target": [
+                    -16.6525,
+                    1.8125,
+                    9.422
+                ]
+            },
+            "floor_1_2": {
+                "position": [
+                    -12.0453,
+                    0.8856,
+                    0.6005
+                ],
+                "target": [
+                    -19.9398,
+                    -0.4321,
+                    6.5956
+                ]
+            },
+            "floor_1_3": {
+                "position": [
+                    -12.1189,
+                    1.0789,
+                    0.6679
+                ],
+                "target": [
+                    -17.7595,
+                    1.1175,
+                    8.9251
+                ]
+            },
+            "floor_2_2": {
+                "position": [
+                    -15.8478,
+                    0.9141,
+                    0.7219
+                ],
+                "target": [
+                    -10.271,
+                    -1.7354,
+                    8.5883
+                ]
+            },
+            "floor_2_3": {
+                "position": [
+                    -15.8478,
+                    1.2141,
+                    0.7219
+                ],
+                "target": [
+                    -11.5703,
+                    -2.31,
+                    9.0456
+                ]
+            },
+            "floor_3_3": {
+                "position": [
+                    -18.7197,
+                    1.1725,
+                    0.7182
+                ],
+                "target": [
+                    -21.6955,
+                    -2.6122,
+                    9.4829
+                ]
+            },
+            "floor_3_2": {
+                "position": [
+                    -18.7197,
+                    0.9225,
+                    0.7182
+                ],
+                "target": [
+                    -21.5813,
+                    -2.3193,
+                    9.735
+                ]
+            }
+        };
         
         let navigationMode = 'orbit'; // 'orbit', 'fly', 'object'
         let flyControls = {
@@ -749,7 +892,7 @@
             up: false,
             down: false,
             fast: false,
-            speed: 0.5
+            speed: 0.1
         };
         let isPointerLocked = false;
         let euler = new THREE.Euler(0, 0, 0, 'YXZ');
@@ -892,6 +1035,8 @@
             initDropdown();
             initCoordinatePrinter();
             initTrackingControls();
+            initRangeControls();
+            initCameraPositionSaver();
             
             // Add event listeners
             const container_el = document.getElementById('canvas-container');
@@ -930,9 +1075,9 @@
                     case 'KeyS': flyControls.backward = true; break;
                     case 'KeyA': flyControls.left = true; break;
                     case 'KeyD': flyControls.right = true; break;
-                    case 'KeyQ': flyControls.down = true; break;
-                    case 'KeyE': flyControls.up = true; break;
-                    case 'ShiftLeft': flyControls.fast = true; break;
+                    case 'Space': flyControls.up = true; e.preventDefault(); break;
+                    case 'ShiftLeft': 
+                    case 'ShiftRight': flyControls.down = true; e.preventDefault(); break;
                     case 'Escape': 
                         if (isPointerLocked) {
                             document.exitPointerLock();
@@ -949,9 +1094,9 @@
                     case 'KeyS': flyControls.backward = false; break;
                     case 'KeyA': flyControls.left = false; break;
                     case 'KeyD': flyControls.right = false; break;
-                    case 'KeyQ': flyControls.down = false; break;
-                    case 'KeyE': flyControls.up = false; break;
-                    case 'ShiftLeft': flyControls.fast = false; break;
+                    case 'Space': flyControls.up = false; break;
+                    case 'ShiftLeft': 
+                    case 'ShiftRight': flyControls.down = false; break;
                 }
             });
 
@@ -1052,7 +1197,7 @@
         function updateFlyControls() {
             if (navigationMode !== 'fly' || !isPointerLocked) return;
 
-            const speed = flyControls.speed * (flyControls.fast ? 3 : 1);
+            const speed = flyControls.speed;
             const direction = new THREE.Vector3();
 
             camera.getWorldDirection(direction);
@@ -1101,12 +1246,323 @@
                     collectedPoints = [];
                     updatePointList();
                     clearClickMarker();
+                    updateCoordinateRanges();
                 }
             });
             
             addBtn.addEventListener('click', addCurrentPoint);
             exportBtn.addEventListener('click', exportPoints);
             copyBtn.addEventListener('click', copyToClipboard);
+        }
+
+        // Initialize range controls
+        function initRangeControls() {
+            const updateRangesBtn = document.getElementById('update-ranges');
+            const detectStairsBtn = document.getElementById('detect-stairs');
+            
+            updateRangesBtn.addEventListener('click', updateCoordinateRanges);
+            detectStairsBtn.addEventListener('click', detectStairAreas);
+            
+            // Initial update
+            updateCoordinateRanges();
+        }
+
+        // Update coordinate ranges
+        function updateCoordinateRanges() {
+            if (collectedPoints.length === 0) {
+                document.getElementById('x-range').textContent = '0.0000 - 0.0000';
+                document.getElementById('y-range').textContent = '0.0000 - 0.0000';
+                document.getElementById('z-range').textContent = '0.0000 - 0.0000';
+                return;
+            }
+
+            const xValues = collectedPoints.map(p => p.x);
+            const yValues = collectedPoints.map(p => p.y);
+            const zValues = collectedPoints.map(p => p.z);
+
+            coordinateRanges.x.min = Math.min(...xValues);
+            coordinateRanges.x.max = Math.max(...xValues);
+            coordinateRanges.y.min = Math.min(...yValues);
+            coordinateRanges.y.max = Math.max(...yValues);
+            coordinateRanges.z.min = Math.min(...zValues);
+            coordinateRanges.z.max = Math.max(...zValues);
+
+            document.getElementById('x-range').textContent = 
+                `${coordinateRanges.x.min.toFixed(4)} - ${coordinateRanges.x.max.toFixed(4)}`;
+            document.getElementById('y-range').textContent = 
+                `${coordinateRanges.y.min.toFixed(4)} - ${coordinateRanges.y.max.toFixed(4)}`;
+            document.getElementById('z-range').textContent = 
+                `${coordinateRanges.z.min.toFixed(4)} - ${coordinateRanges.z.max.toFixed(4)}`;
+        }
+
+        // Detect stair areas based on Y coordinates
+        function detectStairAreas() {
+            if (collectedPoints.length === 0) {
+                alert('No points collected yet. Please collect some points first.');
+                return;
+            }
+
+            // Group points by Y coordinate (floor levels)
+            const floorGroups = {};
+            collectedPoints.forEach(point => {
+                const floorKey = Math.round(point.y * 10) / 10; // Round to 1 decimal place
+                if (!floorGroups[floorKey]) {
+                    floorGroups[floorKey] = [];
+                }
+                floorGroups[floorKey].push(point);
+            });
+
+            // Sort floors by Y coordinate
+            const sortedFloors = Object.keys(floorGroups)
+                .map(floor => parseFloat(floor))
+                .sort((a, b) => a - b);
+
+            // Detect stair areas (areas with vertical movement)
+            const stairAreas = [];
+            for (let i = 0; i < sortedFloors.length - 1; i++) {
+                const currentFloor = sortedFloors[i];
+                const nextFloor = sortedFloors[i + 1];
+                const floorDiff = nextFloor - currentFloor;
+                
+                if (floorDiff > 0.5) { // Significant height difference
+                    const currentFloorPoints = floorGroups[currentFloor];
+                    const nextFloorPoints = floorGroups[nextFloor];
+                    
+                    // Calculate X and Z ranges for this stair area
+                    const allPoints = [...currentFloorPoints, ...nextFloorPoints];
+                    const xValues = allPoints.map(p => p.x);
+                    const zValues = allPoints.map(p => p.z);
+                    
+                    const stairArea = {
+                        floor1: currentFloor,
+                        floor2: nextFloor,
+                        xMin: Math.min(...xValues),
+                        xMax: Math.max(...xValues),
+                        zMin: Math.min(...zValues),
+                        zMax: Math.max(...zValues),
+                        yMin: currentFloor,
+                        yMax: nextFloor,
+                        pointCount: allPoints.length
+                    };
+                    
+                    stairAreas.push(stairArea);
+                }
+            }
+
+            // Display stair areas
+            displayStairAreas(stairAreas, sortedFloors);
+        }
+
+        // Display detected stair areas
+        function displayStairAreas(stairAreas, floors) {
+            const container = document.getElementById('stair-areas');
+            
+            if (stairAreas.length === 0) {
+                container.innerHTML = '<p style="opacity: 0.6; font-size: 0.8rem;">No stair areas detected. Try collecting more points with significant height differences.</p>';
+                return;
+            }
+
+            let html = '<div style="margin-bottom: 10px;">';
+            
+            // Show detected floors
+            html += '<h4 style="color: #00dbde; margin-bottom: 8px;">Detected Floors:</h4>';
+            floors.forEach((floor, index) => {
+                html += `<div style="margin: 2px 0; font-size: 0.8rem;">Floor ${index + 1}: Y = ${floor.toFixed(2)}</div>`;
+            });
+            
+            html += '</div><div style="margin-bottom: 10px;">';
+            html += '<h4 style="color: #fc00ff; margin-bottom: 8px;">Stair Areas:</h4>';
+            
+            stairAreas.forEach((stair, index) => {
+                html += `
+                    <div style="background: rgba(50, 50, 80, 0.3); padding: 8px; margin: 4px 0; border-radius: 4px; font-size: 0.8rem;">
+                        <strong>Stair ${index + 1}:</strong> Floor ${stair.floor1.toFixed(1)} → Floor ${stair.floor2.toFixed(1)}<br>
+                        <strong>X Range:</strong> ${stair.xMin.toFixed(2)} to ${stair.xMax.toFixed(2)}<br>
+                        <strong>Z Range:</strong> ${stair.zMin.toFixed(2)} to ${stair.zMax.toFixed(2)}<br>
+                        <strong>Y Range:</strong> ${stair.yMin.toFixed(2)} to ${stair.yMax.toFixed(2)}<br>
+                        <strong>Points:</strong> ${stair.pointCount}
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            
+            // Add code generation
+            html += '<div style="margin-top: 10px;">';
+            html += '<h4 style="color: #00dbde; margin-bottom: 8px;">Code for index.html:</h4>';
+            html += '<textarea readonly style="width: 100%; height: 120px; background: rgba(20, 20, 40, 0.8); color: #fff; border: 1px solid #444; border-radius: 4px; padding: 8px; font-size: 0.7rem; font-family: monospace;">';
+            
+            stairAreas.forEach((stair, index) => {
+                html += `// Stair ${index + 1} - Floor ${stair.floor1.toFixed(1)} to ${stair.floor2.toFixed(1)}\n`;
+                html += `const stair${index + 1}Area = {\n`;
+                html += `    minX: ${stair.xMin.toFixed(2)}, maxX: ${stair.xMax.toFixed(2)},\n`;
+                html += `    minY: ${stair.yMin.toFixed(2)}, maxY: ${stair.yMax.toFixed(2)},\n`;
+                html += `    minZ: ${stair.zMin.toFixed(2)}, maxZ: ${stair.zMax.toFixed(2)}\n`;
+                html += `};\n\n`;
+            });
+            
+            html += '</textarea></div>';
+            
+            container.innerHTML = html;
+        }
+
+        // Initialize camera position saver
+        function initCameraPositionSaver() {
+            const saveBtn = document.getElementById('save-camera-position');
+            const exportBtn = document.getElementById('export-positions');
+            const copyBtn = document.getElementById('copy-positions');
+            
+            saveBtn.addEventListener('click', saveCurrentCameraPosition);
+            exportBtn.addEventListener('click', exportCameraPositions);
+            copyBtn.addEventListener('click', copyCameraPositions);
+            
+            // Update saved positions list
+            updateSavedPositionsList();
+        }
+
+        // Save current camera position
+        function saveCurrentCameraPosition() {
+            const nameInput = document.getElementById('camera-position-name');
+            const name = nameInput.value.trim();
+            
+            if (!name) {
+                alert('Please enter a name for this camera position');
+                return;
+            }
+            
+            // Check if name already exists
+            if (savedCameraPositions.find(p => p.name === name)) {
+                alert('A position with this name already exists');
+                return;
+            }
+            
+            // Get current camera position and target
+            const cameraPos = camera.position;
+            let targetPos;
+            
+            // Calculate target based on current navigation mode
+            if (navigationMode === 'fly') {
+                // For fly mode, calculate where the camera is looking
+                const direction = new THREE.Vector3(0, 0, -1);
+                direction.applyQuaternion(camera.quaternion);
+                targetPos = new THREE.Vector3().copy(camera.position).add(direction.multiplyScalar(10));
+            } else {
+                // For orbit and object modes, use the controls target
+                targetPos = controls.target;
+            }
+            
+            const position = {
+                name: name,
+                position: [
+                    parseFloat(cameraPos.x.toFixed(4)),
+                    parseFloat(cameraPos.y.toFixed(4)),
+                    parseFloat(cameraPos.z.toFixed(4))
+                ],
+                target: [
+                    parseFloat(targetPos.x.toFixed(4)),
+                    parseFloat(targetPos.y.toFixed(4)),
+                    parseFloat(targetPos.z.toFixed(4))
+                ]
+            };
+            
+            savedCameraPositions.push(position);
+            updateSavedPositionsList();
+            nameInput.value = '';
+            
+            console.log('Saved camera position:', position);
+        }
+
+        // Update saved positions list
+        function updateSavedPositionsList() {
+            const listContainer = document.getElementById('saved-positions-list');
+            
+            if (savedCameraPositions.length === 0) {
+                listContainer.innerHTML = '<p style="text-align: center; opacity: 0.6; padding: 20px;">No positions saved yet</p>';
+                return;
+            }
+            
+            listContainer.innerHTML = '';
+            
+            savedCameraPositions.forEach((position, index) => {
+                const item = document.createElement('div');
+                item.className = 'point-item';
+                
+                item.innerHTML = `
+                    <span class="point-name">${position.name}</span>
+                    <span class="point-coords">${position.position.join(', ')}</span>
+                    <button class="delete-point" onclick="deleteCameraPosition(${index})">×</button>
+                `;
+                
+                listContainer.appendChild(item);
+            });
+        }
+
+        // Delete camera position
+        function deleteCameraPosition(index) {
+            savedCameraPositions.splice(index, 1);
+            updateSavedPositionsList();
+        }
+
+        // Export camera positions as JavaScript object
+        function exportCameraPositions() {
+            if (savedCameraPositions.length === 0) {
+                alert('No camera positions to export');
+                return;
+            }
+            
+            const exportObject = {};
+            savedCameraPositions.forEach(position => {
+                exportObject[position.name] = {
+                    position: position.position,
+                    target: position.target
+                };
+            });
+            
+            const exportString = `const CAMERA_POSITIONS = ${JSON.stringify(exportObject, null, 4)};`;
+            
+            // Create and download file
+            const blob = new Blob([exportString], { type: 'text/javascript' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'camera_positions.js';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            console.log('Exported camera positions:', exportString);
+        }
+
+        // Copy camera positions to clipboard
+        function copyCameraPositions() {
+            if (savedCameraPositions.length === 0) {
+                alert('No camera positions to copy');
+                return;
+            }
+            
+            const exportObject = {};
+            savedCameraPositions.forEach(position => {
+                exportObject[position.name] = {
+                    position: position.position,
+                    target: position.target
+                };
+            });
+            
+            const exportString = `const CAMERA_POSITIONS = ${JSON.stringify(exportObject, null, 4)};`;
+            
+            navigator.clipboard.writeText(exportString).then(() => {
+                alert('Camera positions copied to clipboard!');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = exportString;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Camera positions copied to clipboard!');
+            });
         }
         
         // Handle mouse click for coordinate tracking
@@ -1248,6 +1704,9 @@
             
             // Add permanent marker
             addPermanentMarker(collectedPoints[collectedPoints.length - 1]);
+            
+            // Update coordinate ranges
+            updateCoordinateRanges();
         }
         
         // Add permanent marker for collected point
@@ -1589,6 +2048,7 @@
         }
         
         window.deletePoint = deletePoint;
+        window.deleteCameraPosition = deleteCameraPosition;
         init();
         animate();
     </script>
