@@ -587,10 +587,10 @@
         
         // Function to check if person is near stair coordinates and get appropriate camera position
         function getStairCameraPosition(position) {
-            // Define proximity thresholds for different coordinates
-            const xThreshold = 0.5; // X coordinate threshold
-            const yThreshold = 0.3; // Y coordinate threshold
-            const zThreshold = 0.7; // Z coordinate threshold (using same as X)
+            // Define proximity thresholds for different coordinates - tighter for precise detection
+            const xThreshold = 0.5; // X coordinate threshold - moderate range
+            const yThreshold = 0.5; // Y coordinate threshold - moderate range
+            const zThreshold = 0.8; // Z coordinate threshold - moderate range
             
             for (const [areaName, cameraPos] of Object.entries(CAMERA_POSITIONS)) {
                 const cameraPosition = new THREE.Vector3(...cameraPos.position);
@@ -600,7 +600,10 @@
                 const yDiff = Math.abs(position.y - cameraPosition.y);
                 const zDiff = Math.abs(position.z - cameraPosition.z);
                 
+                console.log(`Checking ${areaName}: xDiff=${xDiff.toFixed(2)}, yDiff=${yDiff.toFixed(2)}, zDiff=${zDiff.toFixed(2)}`);
+                
                 if (xDiff <= xThreshold && yDiff <= yThreshold && zDiff <= zThreshold) {
+                    console.log(`Found stair area: ${areaName}`);
                     return areaName;
                 }
             }
@@ -1276,15 +1279,41 @@
                 return;
             }
             
-            isWalking = true;
-            walkingProgress = 0;
-            cameraFollowing = true;
-            
+            // Position person at start point immediately
             if (currentPath.length > 0) {
                 const startPosition = currentPath[0].clone();
                 startPosition.y += 0.05; // Lift person slightly above ground
                 personModel.position.copy(startPosition);
             }
+            
+            // Position camera at first coordinate of the path immediately
+            if (currentPath.length > 0) {
+                const firstCoordinate = currentPath[0];
+                const eyeLevel = 0.06;
+                const distanceBack = 0.3;
+                
+                // Calculate camera position behind the person
+                const cameraDirection = personDirection.clone().multiplyScalar(-distanceBack);
+                cameraDirection.y = eyeLevel;
+                
+                // Set camera to first coordinate position
+                camera.position.copy(firstCoordinate).add(cameraDirection);
+                
+                // Look at the first coordinate
+                const lookAtPoint = firstCoordinate.clone().add(personDirection);
+                camera.lookAt(lookAtPoint);
+                controls.target.copy(lookAtPoint);
+                controls.update();
+            }
+            
+            // Start camera following immediately
+            cameraFollowing = true;
+            
+            // Wait 1 second before starting to walk
+            setTimeout(() => {
+                isWalking = true;
+                walkingProgress = 0;
+            }, 2000);
         }
         
         function clearPath() {
@@ -1305,13 +1334,13 @@
             currentPath = null;
         }
 
-        // Load model with optimized loading (but don't add to scene)
-        async function loadModel() {
+      // Load model with optimized loading (but don't add to scene)
+      async function loadModel() {
   return new Promise((resolve, reject) => {
     try {
       const loader = new THREE.GLTFLoader();
 
-      // Wrap GitHub release link with proxy
+// Wrap GitHub release link with proxy
     const modelUrls = [
     "https://corsproxy.io/?" + encodeURIComponent(
     "https://github.com/SidLD/SidLD.github.io/releases/download/nwssu/nwssu.glb"
@@ -1377,7 +1406,6 @@ if (urlIndex >= modelUrls.length) {
     }
   });
 }
-
         function createPlaceholderModel() {
             const campusGroup = new THREE.Group();
             
@@ -1423,30 +1451,111 @@ if (urlIndex >= modelUrls.length) {
             // No camera rotation updates needed - orbit controls handle everything
         }
         
+        // Function to determine if stair camera should be used based on floor differences
+        function shouldUseStairCameraForCurrentPath() {
+            // Get the current location names from the selected dropdowns
+            let startLocationName, endLocationName;
+            
+            // Check if we have CCIS location selections first
+            if (selectedLocationA && selectedLocationB) {
+                startLocationName = selectedLocationA;
+                endLocationName = selectedLocationB;
+            } else if (selectedFromPoint && selectedToPoint) {
+                // Use regular from/to selection
+                startLocationName = selectedFromPoint;
+                endLocationName = selectedToPoint;
+            } else {
+                console.log('Could not find start or end location names for floor comparison');
+                return false;
+            }
+            
+            // Get location data directly from CAMPUS_POINTS using the location names
+            const startLocation = CAMPUS_POINTS[startLocationName];
+            const endLocation = CAMPUS_POINTS[endLocationName];
+            
+            if (!startLocation || !endLocation) {
+                console.log(`Could not find location data for ${startLocationName} or ${endLocationName}`);
+                return false;
+            }
+            
+            // Check if floors are different
+            const startFloor = startLocation.floor;
+            const endFloor = endLocation.floor;
+            
+            const shouldUseStair = startFloor !== endFloor;
+            console.log(`Floor comparison: ${startLocationName} (floor ${startFloor}) -> ${endLocationName} (floor ${endFloor}), Use stair camera: ${shouldUseStair}`);
+            
+            return shouldUseStair;
+        }
+        
         function updateCameraFollow() {
             if (!cameraFollowing || !isWalking) return;
             
-            // Check if person is near any stair camera position
-            const stairArea = getStairCameraPosition(personModel.position);
+            // Check if we're at the last coordinate - always use default camera
+            const isAtLastCoordinate = isPersonAtLastCoordinate();
             
-            if (stairArea) {
-                // Use the specific camera position and target for this stair area
-                const cameraPos = CAMERA_POSITIONS[stairArea];
-                if (cameraPos) {
-                    camera.position.set(...cameraPos.position);
-                    camera.lookAt(...cameraPos.target);
-                    controls.target.set(...cameraPos.target);
-                    controls.update();
-                    return;
+            if (isAtLastCoordinate) {
+                console.log('At last coordinate, using default third-person view');
+                useDefaultCamera();
+                return;
+            }
+            
+            // Check if we need to use stair camera based on floor differences
+            const shouldUseStairCamera = shouldUseStairCameraForCurrentPath();
+            console.log(`Should use stair camera: ${shouldUseStairCamera}, Person position:`, personModel.position);
+            
+            if (shouldUseStairCamera) {
+                // Check if person is near any stair camera position
+                const stairArea = getStairCameraPosition(personModel.position);
+                console.log(`Stair area detected: ${stairArea}`);
+                
+                if (stairArea) {
+                    console.log(`Using stair camera for area: ${stairArea}`);
+                    // Use the specific camera position and target for this stair area
+                    const cameraPos = CAMERA_POSITIONS[stairArea];
+                    if (cameraPos) {
+                        camera.position.set(...cameraPos.position);
+                        camera.lookAt(...cameraPos.target);
+                        controls.target.set(...cameraPos.target);
+                        controls.update();
+                        return;
+                    }
+                } else {
+                    console.log('Stair camera should be used but person not near stair area, using third-person view');
                 }
             }
             
-            // Default first-person view: camera at person's eye level
-            const eyeLevel = 0.12; // Height of eyes from ground
-            const cameraOffset = new THREE.Vector3(0, eyeLevel, 0);
+            // Default third-person view
+            useDefaultCamera();
+        }
+        
+        // Function to check if person is at the last coordinate
+        function isPersonAtLastCoordinate() {
+            if (!currentPath || currentPath.length < 2) return true;
             
-            // Set camera to person's position with eye level offset
-            camera.position.copy(personModel.position).add(cameraOffset);
+            const totalLength = currentPath.length - 1;
+            const scaledProgress = walkingProgress * totalLength;
+            const currentIndex = Math.floor(scaledProgress);
+            
+            const isAtLast = currentIndex >= currentPath.length - 1;
+            console.log(`Last coordinate check: walkingProgress=${walkingProgress.toFixed(3)}, scaledProgress=${scaledProgress.toFixed(3)}, currentIndex=${currentIndex}, pathLength=${currentPath.length}, isAtLast=${isAtLast}`);
+            
+            // Check if we're at the last coordinate (index length-1)
+            return isAtLast;
+        }
+        
+        // Function to set default third-person camera view
+        function useDefaultCamera() {
+            console.log('Using default third-person camera');
+            const eyeLevel = 0.06; // Lower eye level
+            const distanceBack = 0.3; // Distance back to see the person
+            
+            // Calculate camera position behind the person in the opposite direction of movement
+            const cameraDirection = personDirection.clone().multiplyScalar(-distanceBack);
+            cameraDirection.y = eyeLevel; // Set the height
+            
+            // Set camera to person's position with offset
+            camera.position.copy(personModel.position).add(cameraDirection);
             
             // Look in the direction the person is moving
             const lookAtPoint = personModel.position.clone().add(personDirection);
@@ -1500,6 +1609,22 @@ if (urlIndex >= modelUrls.length) {
             }
         }
         
+        // Function to calculate total path length
+        function calculatePathLength(path) {
+            let totalLength = 0;
+            for (let i = 0; i < path.length - 1; i++) {
+                const start = path[i];
+                const end = path[i + 1];
+                const distance = Math.sqrt(
+                    Math.pow(end.x - start.x, 2) +
+                    Math.pow(end.y - start.y, 2) +
+                    Math.pow(end.z - start.z, 2)
+                );
+                totalLength += distance;
+            }
+            return totalLength;
+        }
+        
         function animate() {
             requestAnimationFrame(animate);
             
@@ -1510,13 +1635,22 @@ if (urlIndex >= modelUrls.length) {
             
             // Animate person walking
             if (isWalking && currentPath && currentPath.length > 1) {
-                const speedToUse = 0.0008; // Slower, more constant walking speed
+                // Calculate speed based on path length to maintain constant walking speed
+                const pathLength = calculatePathLength(currentPath);
+                const baseSpeed = 0.001; // Base speed per frame
+                const speedToUse = baseSpeed / pathLength; // Adjust speed based on path length
+                
                 walkingProgress += speedToUse;
 
                 if (walkingProgress >= 1) {
                     walkingProgress = 1;
                     isWalking = false;
                     cameraFollowing = false;
+                    
+                    // Use default camera when destination is reached
+                    console.log('Destination reached! Switching to default camera');
+                    useDefaultCamera();
+                    
                     // Show arrival message when destination is reached
                     console.log('Destination reached!'); // Debug log
                     showArrivalMessage();
@@ -1533,7 +1667,7 @@ if (urlIndex >= modelUrls.length) {
                     
                     personModel.position.lerpVectors(start, end, fraction);
                     // Add height offset to keep person above ground
-                    personModel.position.y += 0.05;
+                    personModel.position.y += 0.03;
                     
                     personDirection = new THREE.Vector3().subVectors(end, start).normalize();
                     if (personDirection.length() > 0) {
