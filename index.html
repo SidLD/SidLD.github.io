@@ -589,7 +589,7 @@
         function getStairCameraPosition(position) {
             // Define proximity thresholds for different coordinates - tighter for precise detection
             const xThreshold = 0.5; // X coordinate threshold - moderate range
-            const yThreshold = 0.5; // Y coordinate threshold - moderate range
+            const yThreshold = 0.1; // Y coordinate threshold - moderate range
             const zThreshold = 0.8; // Z coordinate threshold - moderate range
             
             for (const [areaName, cameraPos] of Object.entries(CAMERA_POSITIONS)) {
@@ -1357,7 +1357,7 @@ if (urlIndex >= modelUrls.length) {
 
         const currentUrl = modelUrls[urlIndex];
         console.log(`Trying to load model from: ${currentUrl}`);
-
+ 
         loader.load(
           currentUrl,
           (gltf) => {
