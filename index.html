@@ -579,7 +579,30 @@
             "floor_3_2": {
                 "position": [-18.7197, 0.9225, 0.7182],
                 "target": [-21.5813, -2.3193, 9.735]
-            }
+            }, "floor_2_1": {
+        "position": [
+            -15.7836,
+            0.646,
+            0.6705
+        ],
+        "target": [
+            -12.1716,
+            -0.8643,
+            9.8722
+        ]
+    },
+    "floor_3_1": {
+        "position": [
+            -18.9701,
+            0.6105,
+            0.6365
+        ],
+        "target": [
+            -14.3903,
+            0.2544,
+            9.5189
+        ]
+    }
         };
         
         let isStairView = false;
@@ -1357,7 +1380,7 @@ if (urlIndex >= modelUrls.length) {
 
         const currentUrl = modelUrls[urlIndex];
         console.log(`Trying to load model from: ${currentUrl}`);
- 
+
         loader.load(
           currentUrl,
           (gltf) => {
