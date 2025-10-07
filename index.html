@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NWSSU Path Tracker</title>
+    <title>MAP PATH FINDER</title>
     <style>
         * {
             margin: 0;
@@ -134,7 +134,7 @@
 
         .header-controls {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 0.8rem;
             flex: 1;
             align-items: center;
@@ -365,6 +365,66 @@
             transform: none;
         }
 
+        .speed-control {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            min-width: 100px;
+        }
+
+        .speed-control label {
+            font-size: 0.7rem;
+            color: #a0a0d0;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .speed-slider {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #4169E1;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(65, 105, 225, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .speed-slider::-webkit-slider-thumb:hover {
+            background: #5a7de9;
+            transform: scale(1.1);
+        }
+
+        .speed-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #4169E1;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(65, 105, 225, 0.3);
+        }
+
+        .speed-value {
+            font-size: 0.7rem;
+            color: #4169E1;
+            font-weight: bold;
+            min-width: 30px;
+            text-align: center;
+        }
+
 
         .location-highlight {
             position: absolute;
@@ -414,7 +474,7 @@
             
             .header-controls {
                 width: 100%;
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(3, 1fr);
                 gap: 0.6rem;
             }
             
@@ -455,7 +515,7 @@
             <div class="progress-text" id="progress-text">Loading resources... 0%</div>
         </div>
         
-        <button class="start-button" id="start-button" disabled>Get Started</button>
+        <button class="start-button" id="start-button" disabled>PATHFINDER</button>
     </div>
 
     <!-- Main App Container (initially hidden) -->
@@ -506,10 +566,16 @@
                 
                 <button id="start-path" class="generate-path-btn" disabled>Start</button>
                 
+                <div class="speed-control">
+                    <label for="speed-slider">Speed</label>
+                    <input type="range" id="speed-slider" class="speed-slider" min="0.1" max="3" step="0.1" value="1">
+                    <div class="speed-value" id="speed-value">1.0x</div>
+                </div>
+                
             </div>
             
             <div class="header-title">
-                <h1>Path Tracker</h1>
+                <h1>Map Path Finder</h1>
             </div>
         </header>
         
@@ -549,6 +615,7 @@
         let isFlyMode = true;
         let personDirection = new THREE.Vector3(0, 0, 1);
         let arrivalMessage = null;
+        let walkingSpeed = 1.0; // Default walking speed multiplier
         
         // Camera positions for different stair areas
         const CAMERA_POSITIONS = {
@@ -1031,6 +1098,15 @@
             // Button events
             document.getElementById('start-path').addEventListener('click', startPath);
             
+            // Speed control events
+            const speedSlider = document.getElementById('speed-slider');
+            const speedValue = document.getElementById('speed-value');
+            
+            speedSlider.addEventListener('input', function() {
+                walkingSpeed = parseFloat(this.value);
+                speedValue.textContent = walkingSpeed.toFixed(1) + 'x';
+            });
+            
         }
         
         function moveCameraToDepartment(departmentKey) {
@@ -1272,14 +1348,18 @@
                 // Position camera at the start location
                 const startPoint = pathCoordinates[0];
                 
-                // Determine camera direction (look toward next point if available)
-                let lookAtPoint;
+                // Determine person direction based on path
                 if (pathCoordinates.length > 1) {
-                    lookAtPoint = pathCoordinates[1];
-                    personDirection = new THREE.Vector3().subVectors(lookAtPoint, startPoint).normalize();
+                    personDirection = new THREE.Vector3().subVectors(pathCoordinates[1], startPoint).normalize();
                 } else {
-                    lookAtPoint = startPoint.clone().add(new THREE.Vector3(0, 0, 1));
+                    personDirection = new THREE.Vector3(0, 0, 1); // Default forward direction
                 }
+                
+                // Calculate left direction (perpendicular to path direction)
+                const leftDirection = new THREE.Vector3(-personDirection.z, 0, personDirection.x).normalize();
+                
+                // Set person to look left relative to path direction
+                const lookAtPoint = startPoint.clone().add(leftDirection);
                 
                 // First-person view: position camera at person's eye level
                 const eyeLevel = 1.6; // Human eye level height
@@ -1302,12 +1382,29 @@
                 return;
             }
             
-            // Position person at start point immediately
-            if (currentPath.length > 0) {
-                const startPosition = currentPath[0].clone();
-                startPosition.y += 0.05; // Lift person slightly above ground
-                personModel.position.copy(startPosition);
-            }
+                // Position person at start point immediately
+                if (currentPath.length > 0) {
+                    const startPosition = currentPath[0].clone();
+                    startPosition.y += 0.05; // Lift person slightly above ground
+                    personModel.position.copy(startPosition);
+                    
+                    // Calculate left direction relative to path direction
+                    let pathDirection;
+                    if (currentPath.length > 1) {
+                        pathDirection = new THREE.Vector3().subVectors(currentPath[1], currentPath[0]).normalize();
+                    } else {
+                        pathDirection = new THREE.Vector3(0, 0, 1); // Default forward direction
+                    }
+                    
+                    // Calculate left direction (perpendicular to path direction)
+                    const leftDirection = new THREE.Vector3(-pathDirection.z, 0, pathDirection.x).normalize();
+                    
+                    // Set person to look left relative to path direction
+                    personDirection = leftDirection;
+                    if (personDirection.length() > 0) {
+                        personModel.lookAt(personModel.position.clone().add(personDirection));
+                    }
+                }
             
             // Position camera at first coordinate of the path immediately
             if (currentPath.length > 0) {
@@ -1322,8 +1419,19 @@
                 // Set camera to first coordinate position
                 camera.position.copy(firstCoordinate).add(cameraDirection);
                 
-                // Look at the first coordinate
-                const lookAtPoint = firstCoordinate.clone().add(personDirection);
+                // Calculate left direction relative to path direction for camera
+                let pathDirection;
+                if (currentPath.length > 1) {
+                    pathDirection = new THREE.Vector3().subVectors(currentPath[1], currentPath[0]).normalize();
+                } else {
+                    pathDirection = new THREE.Vector3(0, 0, 1); // Default forward direction
+                }
+                
+                // Calculate left direction (perpendicular to path direction)
+                const leftDirection = new THREE.Vector3(-pathDirection.z, 0, pathDirection.x).normalize();
+                
+                // Look left from the first coordinate
+                const lookAtPoint = firstCoordinate.clone().add(leftDirection);
                 camera.lookAt(lookAtPoint);
                 controls.target.copy(lookAtPoint);
                 controls.update();
@@ -1661,7 +1769,7 @@ if (urlIndex >= modelUrls.length) {
                 // Calculate speed based on path length to maintain constant walking speed
                 const pathLength = calculatePathLength(currentPath);
                 const baseSpeed = 0.001; // Base speed per frame
-                const speedToUse = baseSpeed / pathLength; // Adjust speed based on path length
+                const speedToUse = (baseSpeed / pathLength) * walkingSpeed; // Apply speed multiplier
                 
                 walkingProgress += speedToUse;
 
@@ -1669,6 +1777,24 @@ if (urlIndex >= modelUrls.length) {
                     walkingProgress = 1;
                     isWalking = false;
                     cameraFollowing = false;
+                    
+                    // Calculate left direction relative to final path direction
+                    let finalPathDirection;
+                    if (currentPath.length > 1) {
+                        const lastIndex = currentPath.length - 1;
+                        finalPathDirection = new THREE.Vector3().subVectors(currentPath[lastIndex], currentPath[lastIndex - 1]).normalize();
+                    } else {
+                        finalPathDirection = new THREE.Vector3(0, 0, 1); // Default forward direction
+                    }
+                    
+                    // Calculate left direction (perpendicular to final path direction)
+                    const leftDirection = new THREE.Vector3(-finalPathDirection.z, 0, finalPathDirection.x).normalize();
+                    
+                    // Set person to look left relative to final path direction
+                    personDirection = leftDirection;
+                    if (personDirection.length() > 0) {
+                        personModel.lookAt(personModel.position.clone().add(personDirection));
+                    }
                     
                     // Use default camera when destination is reached
                     console.log('Destination reached! Switching to default camera');
