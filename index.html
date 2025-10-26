@@ -1847,6 +1847,7 @@
             const locationAData = CAMPUS_POINTS[startLocation];
             console.log('DEBUG: locationAData =', locationAData);
             
+            // ALWAYS use the START location's camera if it exists
             if (locationAData && locationAData.camera) {
                 // Use the START location's camera position and target
                 cameraPosition = new THREE.Vector3(
@@ -1881,27 +1882,65 @@
                 controls.target.copy(cameraTarget);
                 controls.update();
                 
-                // Position person at the first waypoint position (not location's person position)
+                // Position person at the start location's person position and make them look at target
                 console.log('DEBUG: personModel exists:', !!personModel);
                 if (personModel) {
-                    // Use first waypoint position instead of location's person position
-                    if (currentPath && currentPath.length > 0) {
-                        const startPosition = new THREE.Vector3(
-                            currentPath[0].x,
-                            currentPath[0].y + 0.1, // Small height offset for waypoint start
-                            currentPath[0].z
-                        );
-                        
-                        personModel.position.copy(startPosition);
-                        // Make person face the same direction as the camera
-                        personModel.lookAt(controls.target);
-                        personModel.visible = true;
-                        
-                        console.log('DEBUG: Person positioned at waypoint start:', startPosition);
-                        console.log('DEBUG: Person facing camera target:', controls.target);
-                        console.log('DEBUG: Person model visible:', personModel.visible);
+                    if (startLocation) {
+                        const locationAData = CAMPUS_POINTS[startLocation];
+                        if (locationAData && locationAData.person) {
+                            // Use the START location's person position
+                            const personPosition = new THREE.Vector3(
+                                locationAData.person.position.x,
+                                locationAData.person.position.y - 0.02,
+                                locationAData.person.position.z
+                            );
+                            
+                            // Use the START location's person target for where they look
+                            const personTarget = new THREE.Vector3(
+                                locationAData.person.target.x,
+                                locationAData.person.target.y,
+                                locationAData.person.target.z
+                            );
+                            
+                            personModel.position.copy(personPosition);
+                            // Person looks at their defined target (location's person target)
+                            personModel.lookAt(personTarget);
+                            personModel.visible = true;
+                            
+                            console.log('DEBUG: Person lookAt target:', personTarget);
+                            
+                            console.log('DEBUG: Person positioned at:', personPosition);
+                            console.log('DEBUG: Person looking at:', personTarget);
+                            console.log('DEBUG: Person model visible:', personModel.visible);
+                        } else {
+                            console.log('DEBUG: No person data for start location, using fallback');
+                            // Fallback: position person at first waypoint
+                            if (currentPath && currentPath.length > 0) {
+                                const startPosition = new THREE.Vector3(
+                                    currentPath[0].x,
+                                    currentPath[0].y + 0.02,
+                                    currentPath[0].z
+                                );
+                                personModel.position.copy(startPosition);
+                                personModel.lookAt(controls.target);
+                                personModel.visible = true;
+                                console.log('DEBUG: Person positioned at fallback position:', startPosition);
+                            }
+                        }
                     } else {
-                        console.log('DEBUG: No waypoint data available for person positioning');
+                        console.log('DEBUG: No start location, using fallback');
+                        // Fallback: position person at first waypoint
+                        if (currentPath && currentPath.length > 0) {
+                            const startPosition = new THREE.Vector3(
+                                currentPath[0].x,
+                                currentPath[0].y + 0.02,
+                                currentPath[0].z
+                            );
+                            personModel.position.copy(startPosition);
+                            personModel.lookAt(controls.target);
+                            personModel.visible = true;
+                            console.log('DEBUG: Person positioned at fallback position:', startPosition);
+                        }
                     }
                 } else {
                     console.log('ERROR: personModel is null!');
@@ -2399,19 +2438,27 @@
                                 console.log(`DEBUG: animate() - Applied ${endLocation}'s camera for end view`);
                             }
                             
-                            // Move person to location's person position and make them look at target
+                            // Move person to location's person position and make them look at their defined target
                             if (locationBData.person && locationBData.person.position && locationBData.person.target) {
+                                // Use the END location's person position
                                 const personPosition = new THREE.Vector3(
                                     locationBData.person.position.x,
-                                    locationBData.person.position.y - 0.05, // Lower person more at arrival destination
+                                    locationBData.person.position.y - 0.02,
                                     locationBData.person.position.z
                                 );
                                 
+                                // Use the END location's person target for where they look
+                                const personTarget = new THREE.Vector3(
+                                    locationBData.person.target.x,
+                                    locationBData.person.target.y,
+                                    locationBData.person.target.z
+                                );
+                                
                                 personModel.position.copy(personPosition);
-                                // Make person face the same direction as the camera
-                                personModel.lookAt(controls.target);
+                                // Person looks at their defined target (not camera target)
+                                personModel.lookAt(personTarget);
                                 console.log('DEBUG: animate() - Person positioned at destination:', personPosition);
-                                console.log('DEBUG: animate() - Person facing camera target:', controls.target);
+                                console.log('DEBUG: animate() - Person looking at:', personTarget);
                             }
                         }
                     }
