@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floor Area Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0c0c1a;
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Header Styles */
+        header {
+            background: linear-gradient(135deg, #1a1a3a 0%, #0c0c1a 100%);
+            padding: 1rem;
+            border-bottom: 1px solid #2a2a4a;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 1000;
+            min-height: 60px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(100, 149, 237, 0.5);
+        }
+
+        .controls-panel {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            min-width: 100px;
+        }
+
+        .control-group label {
+            font-size: 0.7rem;
+            color: #a0a0d0;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            background: rgba(50, 50, 80, 0.8);
+            border: 1px solid #2a2a4a;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            background: rgba(70, 70, 100, 0.9);
+            transform: translateY(-2px);
+        }
+
+        .btn.primary {
+            background: #4169E1;
+        }
+
+        .btn.primary:hover {
+            background: #5a7de9;
+        }
+
+        .btn.success {
+            background: #28a745;
+        }
+
+        .btn.success:hover {
+            background: #34ce57;
+        }
+
+        .btn.danger {
+            background: #dc3545;
+        }
+
+        .btn.danger:hover {
+            background: #e74c3c;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn:disabled:hover {
+            background: rgba(50, 50, 80, 0.8);
+            transform: none;
+        }
+
+        .speed-control {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            min-width: 100px;
+        }
+
+        .speed-slider {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #4169E1;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(65, 105, 225, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .speed-slider::-webkit-slider-thumb:hover {
+            background: #5a7de9;
+            transform: scale(1.1);
+        }
+
+        .speed-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #4169E1;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(65, 105, 225, 0.3);
+        }
+
+        .speed-value {
+            font-size: 0.7rem;
+            color: #4169E1;
+            font-weight: bold;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .floor-selector {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .floor-btn {
+            padding: 0.3rem 0.8rem;
+            background: rgba(50, 50, 80, 0.6);
+            border: 1px solid #2a2a4a;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.8rem;
+            min-width: 40px;
+        }
+
+        .floor-btn:hover {
+            background: rgba(70, 70, 100, 0.8);
+        }
+
+        .floor-btn.active {
+            background: #4169E1;
+            border-color: #4169E1;
+        }
+
+        .content {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            position: relative;
+        }
+
+        .viewer-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(28, 28, 48, 0.9);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+        }
+
+        .loading.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #4169E1;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .instructions {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            max-width: 300px;
+            z-index: 1000;
+            border: 1px solid #2a2a4a;
+        }
+
+        .instructions h3 {
+            color: #4169E1;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .instructions ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+            color: #a0a0d0;
+        }
+
+        .instructions .key {
+            background: rgba(65, 105, 225, 0.3);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        .status-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            border: 1px solid #2a2a4a;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .status-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .status-label {
+            color: #4169E1;
+            font-weight: bold;
+        }
+
+        .status-value {
+            color: #fff;
+            font-family: monospace;
+        }
+
+        .export-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 35, 0.95);
+            padding: 2rem;
+            border-radius: 10px;
+            border: 1px solid #2a2a4a;
+            z-index: 2000;
+            display: none;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .export-panel.visible {
+            display: block;
+        }
+
+        .export-panel h3 {
+            color: #4169E1;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .export-panel textarea {
+            width: 100%;
+            height: 300px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #2a2a4a;
+            border-radius: 6px;
+            color: #fff;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            resize: vertical;
+            margin-bottom: 1rem;
+        }
+
+        .export-panel .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                gap: 0.8rem;
+            }
+            
+            .controls-panel {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .instructions {
+                max-width: 250px;
+                font-size: 0.8rem;
+            }
+            
+            .status-bar {
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Floor Area Editor</h1>
+            
+            <div class="controls-panel">
+                <div class="floor-selector">
+                    <button class="floor-btn active" data-floor="1">Floor 1</button>
+                    <button class="floor-btn" data-floor="2">Floor 2</button>
+                    <button class="floor-btn" data-floor="3">Floor 3</button>
+                </div>
+                
+                <button id="start-drawing" class="btn primary">Start Drawing</button>
+                <button id="stop-drawing" class="btn danger" disabled>Stop Drawing</button>
+                <button id="clear-area" class="btn">Clear Area</button>
+                <button id="export-json" class="btn success">Export JSON</button>
+                
+                <div class="speed-control">
+                    <label for="speed-slider">Speed</label>
+                    <input type="range" id="speed-slider" class="speed-slider" min="0" max="10" step="0.1" value="1">
+                    <div class="speed-value" id="speed-value">10%</div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="content">
+            <div class="viewer-container">
+                <div id="canvas-container"></div>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <h3 id="loading-message">Loading Campus Model...</h3>
+                    <p id="loading-submessage">Preparing 3D editor</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Instructions Panel -->
+        <div class="instructions">
+            <h3>Controls</h3>
+            <ul>
+                <li><span class="key">W</span> Move Forward</li>
+                <li><span class="key">S</span> Move Backward</li>
+                <li><span class="key">A</span> Move Left</li>
+                <li><span class="key">D</span> Move Right</li>
+                <li><span class="key">Shift</span> Move Down</li>
+                <li><span class="key">Space</span> Move Up</li>
+                <li><span class="key">Mouse</span> Look Around (click to enable)</li>
+                <li><span class="key">Escape</span> Exit Mouse Look</li>
+                <li><span class="key">R</span> Add Point (when drawing)</li>
+            </ul>
+        </div>
+        
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-label">Position:</span>
+                <span class="status-value" id="position-display">0, 0, 0</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Current Floor:</span>
+                <span class="status-value" id="floor-display">1</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Floor Height:</span>
+                <span class="status-value" id="floor-height-display">0.0</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Points:</span>
+                <span class="status-value" id="points-display">0</span>
+            </div>
+        </div>
+        
+        <!-- Export Panel -->
+        <div class="export-panel" id="export-panel">
+            <h3>Floor Areas JSON Export</h3>
+            <textarea id="json-output" readonly></textarea>
+            <div class="btn-group">
+                <button class="btn primary" id="copy-json">Copy to Clipboard</button>
+                <button class="btn" id="close-export">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js Scripts -->
+    <script src="./threejs/three.min.js"></script>
+    <script src="./threejs/GLTFLoader.min.js"></script>
+    <script src="./threejs/OrbitControls.js"></script>
+
+    <script>
+        // Global variables
+        let scene, camera, renderer, controls;
+        let model = null;
+        let isDrawing = false;
+        let currentFloor = 1;
+        let floorAreas = {
+            1: [],
+            2: [],
+            3: []
+        };
+        let currentArea = [];
+        let movementSpeed = 5.0;
+        let keys = {};
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let flyMode = true; // Default to fly mode
+        
+        // Mouse look variables
+        let isMouseLookEnabled = false;
+        let mouseSensitivity = 0.002;
+        let pitch = 0; // Vertical rotation
+        let yaw = 0; // Horizontal rotation
+        
+        // Movement state
+        let moveForward = false;
+        let moveBackward = false;
+        let moveLeft = false;
+        let moveRight = false;
+        let moveUp = false;
+        let moveDown = false;
+        
+        // Initialize the editor
+        async function initEditor() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0c0c1a);
+            scene.fog = new THREE.Fog(0x0c0c1a, 10, 50);
+            
+            // Create camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 10);
+            
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true,
+                alpha: true,
+                logarithmicDepthBuffer: true
+            });
+            
+            const container = document.getElementById('canvas-container');
+            renderer.setSize(container.offsetWidth, container.offsetHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+            
+            // Add grid helper
+            const gridHelper = new THREE.GridHelper(100, 50, 0x444466, 0x222244);
+            gridHelper.position.y = -0.01;
+            scene.add(gridHelper);
+            
+            // Lighting setup
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            directionalLight.position.set(20, 30, 20);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            // Load campus model
+            await loadModel();
+            
+            // Add orbit controls (disabled for fly mode)
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enabled = false; // Disabled since we use fly mode by default
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.maxDistance = 200;
+            controls.minDistance = 1;
+            controls.maxPolarAngle = Math.PI / 1.5;
+            
+            // Initialize UI
+            initUI();
+            
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize, false);
+            
+            // Start animation loop
+            animate();
+            
+            // Hide loading
+            document.getElementById('loading').classList.add('hidden');
+        }
+        
+        // Load campus model
+        async function loadModel() {
+            try {
+                const loader = new THREE.GLTFLoader();
+                
+                const gltf = await new Promise((resolve, reject) => {
+                    loader.load(
+                        'nwssu.glb',
+                        (gltf) => resolve(gltf),
+                        (progress) => {
+                            const percent = Math.round((progress.loaded / progress.total) * 100);
+                            document.getElementById('loading-submessage').textContent = `Loading model: ${percent}%`;
+                        },
+                        (error) => reject(error)
+                    );
+                });
+                
+                model = gltf.scene;
+                
+                // Scale to fit
+                const bbox = new THREE.Box3().setFromObject(model);
+                const size = bbox.getSize(new THREE.Vector3());
+                const maxDimension = Math.max(size.x, size.y, size.z);
+                const scale = 50 / maxDimension;
+                model.scale.setScalar(scale);
+                
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                
+                scene.add(model);
+                console.log('Campus model loaded successfully');
+                
+            } catch (error) {
+                console.error('Error loading campus model:', error);
+                // Create placeholder if model fails to load
+                createPlaceholderModel();
+            }
+        }
+        
+        // Create placeholder model
+        function createPlaceholderModel() {
+            const campusGroup = new THREE.Group();
+            
+            // Create some buildings
+            const building1 = new THREE.Mesh(
+                new THREE.BoxGeometry(4, 3, 4),
+                new THREE.MeshLambertMaterial({ color: 0x8888ff })
+            );
+            building1.position.set(-5, 1.5, 5);
+            campusGroup.add(building1);
+            
+            const building2 = new THREE.Mesh(
+                new THREE.BoxGeometry(5, 4, 3),
+                new THREE.MeshLambertMaterial({ color: 0xff8888 })
+            );
+            building2.position.set(5, 2, 3);
+            campusGroup.add(building2);
+            
+            scene.add(campusGroup);
+            model = campusGroup;
+        }
+        
+        // Initialize UI
+        function initUI() {
+            // Floor selector
+            document.querySelectorAll('.floor-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFloor = parseInt(this.dataset.floor);
+                    document.getElementById('floor-display').textContent = currentFloor;
+                });
+            });
+            
+            // Drawing controls
+            document.getElementById('start-drawing').addEventListener('click', startDrawing);
+            document.getElementById('stop-drawing').addEventListener('click', stopDrawing);
+            document.getElementById('clear-area').addEventListener('click', clearCurrentArea);
+            document.getElementById('export-json').addEventListener('click', exportJSON);
+            
+            // Speed control
+            const speedSlider = document.getElementById('speed-slider');
+            const speedValue = document.getElementById('speed-value');
+            
+            speedSlider.addEventListener('input', function() {
+                movementSpeed = parseFloat(this.value);
+                speedValue.textContent = movementSpeed.toFixed(1) + '%';
+            });
+            
+            // Export panel controls
+            document.getElementById('copy-json').addEventListener('click', copyToClipboard);
+            document.getElementById('close-export').addEventListener('click', closeExportPanel);
+            
+            // Keyboard controls
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+            
+            // Mouse controls for drawing and looking
+            renderer.domElement.addEventListener('mousedown', onMouseDown);
+            renderer.domElement.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+            
+            // Enable mouse look on canvas click
+            renderer.domElement.addEventListener('click', function() {
+                if (!isMouseLookEnabled) {
+                    renderer.domElement.requestPointerLock();
+                }
+            });
+            
+            // Handle pointer lock changes
+            document.addEventListener('pointerlockchange', onPointerLockChange);
+            document.addEventListener('pointerlockerror', onPointerLockError);
+    }
+    
+    // Keyboard controls
+    function onKeyDown(event) {
+            switch(event.code) {
+                case 'KeyW':
+                    moveForward = true;
+                    break;
+                case 'KeyS':
+                    moveBackward = true;
+                    break;
+                case 'KeyA':
+                    moveLeft = true;
+                    break;
+                case 'KeyD':
+                    moveRight = true;
+                    break;
+                case 'ShiftLeft':
+                case 'ShiftRight':
+                    moveDown = true;
+                    break;
+                case 'Space':
+                    event.preventDefault();
+                    moveUp = true;
+                    break;
+                case 'Escape':
+                    // Exit pointer lock
+                    if (isMouseLookEnabled) {
+                        document.exitPointerLock();
+                    }
+                    break;
+                case 'KeyR':
+                    // Add point when R is pressed (only when drawing)
+                    if (isDrawing) {
+                        addPointAtCenter();
+                    }
+                    break;
+            }
+        }
+        
+        function onKeyUp(event) {
+            switch(event.code) {
+                case 'KeyW':
+                    moveForward = false;
+                    break;
+                case 'KeyS':
+                    moveBackward = false;
+                    break;
+                case 'KeyA':
+                    moveLeft = false;
+                    break;
+                case 'KeyD':
+                    moveRight = false;
+                    break;
+                case 'ShiftLeft':
+                case 'ShiftRight':
+                    moveDown = false;
+                    break;
+                case 'Space':
+                    moveUp = false;
+                    break;
+            }
+    }
+    
+    // Add point at center of screen (for R key)
+    function addPointAtCenter() {
+        if (!isDrawing) return;
+        
+        // Create a ray from the camera through the center of the screen
+        raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+        
+        // Get all meshes for intersection (including model walls/floors)
+        const intersectObjects = [];
+        if (model) {
+            model.traverse((child) => {
+                if (child.isMesh) {
+                    intersectObjects.push(child);
+                }
+            });
+        }
+        
+        // Add floor planes as fallback for each floor level
+        const floorHeight = getFloorHeight(currentFloor);
+        const planeGeometry = new THREE.PlaneGeometry(100, 100);
+        const planeMaterial = new THREE.MeshBasicMaterial({ visible: false });
+        const floorPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+        floorPlane.rotation.x = -Math.PI / 2;
+        floorPlane.position.y = floorHeight;
+        intersectObjects.push(floorPlane);
+        
+        const intersects = raycaster.intersectObjects(intersectObjects);
+        
+        if (intersects.length > 0) {
+            // Use the first intersection (closest to camera) - this prevents going through walls
+            const point = intersects[0].point;
+            
+            // If we hit a model mesh, use its exact position
+            // If we hit the floor plane, adjust Y to floor height
+            if (intersects[0].object === floorPlane) {
+                point.y = floorHeight;
+            }
+            
+            addPoint(point);
+        }
+    }
+    
+    // Mouse look functions
+    function onMouseDown(event) {
+        if (event.button === 0) { // Left mouse button
+            if (!isMouseLookEnabled) {
+                renderer.domElement.requestPointerLock();
+            }
+        }
+    }
+    
+    function onMouseMove(event) {
+        if (isMouseLookEnabled) {
+            const movementX = event.movementX || 0;
+            const movementY = event.movementY || 0;
+            
+            yaw -= movementX * mouseSensitivity;
+            pitch -= movementY * mouseSensitivity;
+            
+            // Limit pitch to prevent camera flipping
+            pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+            
+            // Update camera rotation
+            camera.rotation.order = 'YXZ';
+            camera.rotation.y = yaw;
+            camera.rotation.x = pitch;
+        }
+    }
+    
+    function onMouseUp(event) {
+        // Handle mouse up if needed
+    }
+    
+    function onPointerLockChange() {
+        isMouseLookEnabled = document.pointerLockElement === renderer.domElement;
+        console.log('Mouse look:', isMouseLookEnabled ? 'enabled' : 'disabled');
+    }
+    
+    function onPointerLockError() {
+        console.error('Pointer lock failed');
+    }
+    
+        // Mouse click for adding points
+        function onMouseClick(event) {
+            if (!isDrawing) return;
+            
+            // Only add points if not in pointer lock mode (to avoid conflicts)
+            if (isMouseLookEnabled) return;
+            
+            // Calculate mouse position in normalized device coordinates
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            // Update raycaster
+            raycaster.setFromCamera(mouse, camera);
+            
+            // Get all meshes for intersection (including model walls/floors)
+            const intersectObjects = [];
+            if (model) {
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        intersectObjects.push(child);
+                    }
+                });
+            }
+            
+            // Add floor planes as fallback for each floor level
+            const floorHeight = getFloorHeight(currentFloor);
+            const planeGeometry = new THREE.PlaneGeometry(100, 100);
+            const planeMaterial = new THREE.MeshBasicMaterial({ visible: false });
+            const floorPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+            floorPlane.rotation.x = -Math.PI / 2;
+            floorPlane.position.y = floorHeight;
+            intersectObjects.push(floorPlane);
+            
+            const intersects = raycaster.intersectObjects(intersectObjects);
+            
+            if (intersects.length > 0) {
+                // Use the first intersection (closest to camera) - this prevents going through walls
+                const point = intersects[0].point;
+                
+                // If we hit a model mesh, use its exact position
+                // If we hit the floor plane, adjust Y to floor height
+                if (intersects[0].object === floorPlane) {
+                    point.y = floorHeight;
+                }
+                
+                addPoint(point);
+            }
+        }
+        
+        // Get the correct height for each floor
+        function getFloorHeight(floor) {
+            // Use the same floor heights as the main app for consistency
+            switch(floor) {
+                case 1: return 0.0;   // Ground floor (Y < 0.5)
+                case 2: return 0.5;  // Second floor (Y < 1.5) 
+                case 3: return 1.5;  // Third floor (Y < 2.5)
+                default: return 0.0;
+            }
+        }
+        
+        // Alternative method: Calculate floor heights from model geometry
+        function calculateFloorHeightsFromModel() {
+            if (!model) return;
+            
+            // Get bounding box of the model
+            const bbox = new THREE.Box3().setFromObject(model);
+            const minY = bbox.min.y;
+            const maxY = bbox.max.y;
+            const height = maxY - minY;
+            
+            // Calculate floor heights based on model dimensions
+            const floorHeight = height / 3; // Assuming 3 floors
+            
+            console.log(`Model height: ${height.toFixed(2)}, Floor height: ${floorHeight.toFixed(2)}`);
+            console.log(`Floor 1: ${minY.toFixed(2)}, Floor 2: ${(minY + floorHeight).toFixed(2)}, Floor 3: ${(minY + floorHeight * 2).toFixed(2)}`);
+            
+            return {
+                1: minY,
+                2: minY + floorHeight,
+                3: minY + floorHeight * 2
+            };
+        }
+        
+        // Add point to current area
+        function addPoint(position) {
+            currentArea.push({
+                x: position.x,
+                y: position.y,
+                z: position.z
+            });
+            
+            // Create visual marker
+            const markerGeometry = new THREE.SphereGeometry(0.1, 8, 6);
+            const markerMaterial = new THREE.MeshBasicMaterial({ 
+                color: getFloorColor(currentFloor),
+                transparent: true,
+                opacity: 0.8
+            });
+            const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+            marker.position.copy(position);
+            marker.userData = { isAreaMarker: true, floor: currentFloor };
+            scene.add(marker);
+            
+            // Update UI
+            document.getElementById('points-display').textContent = currentArea.length;
+            
+            console.log(`Added point to Floor ${currentFloor}:`, position);
+        }
+        
+        // Get color for floor
+        function getFloorColor(floor) {
+            switch(floor) {
+                case 1: return 0xff0000; // Red
+                case 2: return 0xffff00; // Yellow
+                case 3: return 0x0000ff; // Blue
+                default: return 0xffffff; // White
+            }
+        }
+        
+        // Start drawing
+        function startDrawing() {
+            isDrawing = true;
+            document.getElementById('start-drawing').disabled = true;
+            document.getElementById('stop-drawing').disabled = false;
+            document.getElementById('clear-area').disabled = false;
+            
+            // Disable orbit controls when drawing
+            controls.enabled = false;
+            
+            console.log(`Started drawing Floor ${currentFloor} area`);
+        }
+        
+        // Stop drawing
+        function stopDrawing() {
+            if (currentArea.length > 0) {
+                floorAreas[currentFloor] = [...currentArea];
+                console.log(`Saved Floor ${currentFloor} area with ${currentArea.length} points`);
+            }
+            
+            isDrawing = false;
+            document.getElementById('start-drawing').disabled = false;
+            document.getElementById('stop-drawing').disabled = true;
+            
+            // Re-enable orbit controls
+            controls.enabled = true;
+            
+            console.log(`Stopped drawing Floor ${currentFloor} area`);
+        }
+        
+        // Clear current area
+        function clearCurrentArea() {
+            currentArea = [];
+            
+            // Remove visual markers for current floor
+            scene.children.forEach(child => {
+                if (child.userData && child.userData.isAreaMarker && child.userData.floor === currentFloor) {
+                    scene.remove(child);
+                }
+            });
+            
+            document.getElementById('points-display').textContent = '0';
+            console.log(`Cleared Floor ${currentFloor} area`);
+        }
+        
+        // Export JSON
+        function exportJSON() {
+            const exportData = {
+                version: "1.0",
+                created: new Date().toISOString(),
+                floorAreas: floorAreas,
+                metadata: {
+                    totalPoints: Object.values(floorAreas).reduce((sum, area) => sum + area.length, 0),
+                    floors: Object.keys(floorAreas).map(f => ({
+                        floor: parseInt(f),
+                        points: floorAreas[f].length
+                    }))
+                }
+            };
+            
+            const jsonString = JSON.stringify(exportData, null, 2);
+            document.getElementById('json-output').value = jsonString;
+            document.getElementById('export-panel').classList.add('visible');
+        }
+        
+        // Copy to clipboard
+        async function copyToClipboard() {
+            const jsonOutput = document.getElementById('json-output');
+            try {
+                await navigator.clipboard.writeText(jsonOutput.value);
+                alert('JSON copied to clipboard!');
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+                // Fallback
+                jsonOutput.select();
+                document.execCommand('copy');
+                alert('JSON copied to clipboard!');
+            }
+        }
+        
+        // Close export panel
+        function closeExportPanel() {
+            document.getElementById('export-panel').classList.remove('visible');
+        }
+        
+        // Update camera movement
+        function updateCameraMovement(delta) {
+            const velocity = movementSpeed * delta;
+            const direction = new THREE.Vector3();
+            
+            if (moveForward) direction.z -= velocity;
+            if (moveBackward) direction.z += velocity;
+            if (moveLeft) direction.x -= velocity;
+            if (moveRight) direction.x += velocity;
+            if (moveUp) direction.y += velocity;
+            if (moveDown) direction.y -= velocity;
+            
+            // Apply movement relative to camera orientation
+            direction.applyQuaternion(camera.quaternion);
+            camera.position.add(direction);
+        }
+        
+        // Update status display
+        function updateStatusDisplay() {
+            const pos = camera.position;
+            document.getElementById('position-display').textContent = 
+                `${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}`;
+            
+            // Update floor height display
+            const floorHeight = getFloorHeight(currentFloor);
+            document.getElementById('floor-height-display').textContent = floorHeight.toFixed(2);
+        }
+        
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const delta = 0.0167; // Approximate 60fps
+            
+            // Update camera movement
+            updateCameraMovement(delta);
+            
+            // Update status display
+            updateStatusDisplay();
+            
+            // Render
+            renderer.render(scene, camera);
+        }
+        
+        // Handle window resize
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // Initialize the editor when page loads
+        window.addEventListener('load', initEditor);
+    </script>
+</body>
+</html>

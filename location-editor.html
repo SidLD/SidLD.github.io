@@ -679,6 +679,57 @@
                 </div>
 
                 <div class="control-group">
+                    <h2>Location Setup</h2>
+                    <div class="instructions">
+                        <h3>Set Person & Camera:</h3>
+                        <p style="font-size: 0.8rem; margin-bottom: 8px;">Position camera where you want it, then set person position and where person should look</p>
+                    </div>
+                    
+                    <input type="text" id="location-name" class="name-input" placeholder="Enter location name (e.g., room309)">
+                    
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <button id="set-person-position" class="track-btn" style="flex: 1;">Set Person Position</button>
+                        <button id="set-person-target" class="track-btn" style="flex: 1;">Set Person Target</button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <button id="set-camera-position" class="track-btn" style="flex: 1;">Set Camera Position</button>
+                        <button id="set-camera-target" class="track-btn" style="flex: 1;">Set Camera Target</button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <button id="show-person" class="track-btn" style="flex: 1; background: linear-gradient(90deg, #28a745, #20c997);">Show Person</button>
+                        <button id="hide-person" class="track-btn" style="flex: 1; background: linear-gradient(90deg, #dc3545, #fd7e14);">Hide Person</button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <button id="position-person-here" class="track-btn" style="flex: 1; background: linear-gradient(90deg, #6f42c1, #e83e8c);">Position Person Here</button>
+                        <button id="look-at-person" class="track-btn" style="flex: 1; background: linear-gradient(90deg, #17a2b8, #6c757d);">Look at Person</button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                        <button id="enable-person-positioning" class="track-btn" style="flex: 1; background: linear-gradient(90deg, #28a745, #20c997);">Click to Position Person</button>
+                        <button id="disable-person-positioning" class="track-btn" style="flex: 1; background: linear-gradient(90deg, #dc3545, #fd7e14);">Disable Click Mode</button>
+                    </div>
+                    
+                    <button id="save-location" class="track-btn" style="width: 100%; margin-bottom: 8px; background: linear-gradient(90deg, #00dbde, #fc00ff);">Save Location</button>
+                    
+                    <div class="coordinate-display" id="location-preview" style="display: none;">
+                        <h4 style="color: #fc00ff; margin-bottom: 8px;">Location Preview:</h4>
+                        <div id="location-data-preview"></div>
+                    </div>
+                    
+                    <div class="point-list" id="saved-locations-list" style="max-height: 150px;">
+                        <p style="text-align: center; opacity: 0.6; padding: 20px;">No locations saved yet</p>
+                    </div>
+                    
+                    <div class="export-section">
+                        <button id="export-locations" class="export-btn">Export Locations</button>
+                        <button id="copy-locations" class="export-btn">Copy to Clipboard</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
                     <h2>Save Camera Position</h2>
                     <div class="instructions">
                         <h3>Save Current View:</h3>
@@ -790,11 +841,21 @@
         let currentClickPoint = null;
         let clickMarker = null;
         let savedCameraPositions = [];
+        let savedLocations = [];
+        let currentLocationData = {
+            name: '',
+            x: 0, y: 0, z: 0,
+            person: { position: { x: 0, y: 0, z: 0 }, target: { x: 0, y: 0, z: 0 } },
+            camera: { position: { x: 0, y: 0, z: 0 }, target: { x: 0, y: 0, z: 0 } }
+        };
         let coordinateRanges = {
             x: { min: 0, max: 0 },
             y: { min: 0, max: 0 },
             z: { min: 0, max: 0 }
         };
+        
+        // Person positioning mode
+        let isPersonPositioningMode = false;
 
         const CAMERA_POSITIONS = {
             "floor_1_1": {
@@ -1037,14 +1098,21 @@
             initTrackingControls();
             initRangeControls();
             initCameraPositionSaver();
+            initLocationSetup();
             
             // Add event listeners
             const container_el = document.getElementById('canvas-container');
             container_el.addEventListener('click', onMouseClick, false);
             container_el.addEventListener('mousemove', onMouseMove, false);
             
+            // Add person positioning mode
+            initPersonPositioning();
+            
             // Load the model
             loadModel();
+            
+            // Create person model for better visualization
+            createPersonModel();
         }
 
         // Initialize navigation mode controls
@@ -1406,6 +1474,48 @@
             container.innerHTML = html;
         }
 
+        // Initialize location setup
+        function initLocationSetup() {
+            const setNameBtn = document.getElementById('set-person-position');
+            const setPersonTargetBtn = document.getElementById('set-person-target');
+            const setCameraPosBtn = document.getElementById('set-camera-position');
+            const setCameraTargetBtn = document.getElementById('set-camera-target');
+            const saveLocationBtn = document.getElementById('save-location');
+            const exportLocationsBtn = document.getElementById('export-locations');
+            const copyLocationsBtn = document.getElementById('copy-locations');
+            
+            // Person visualization controls
+            const showPersonBtn = document.getElementById('show-person');
+            const hidePersonBtn = document.getElementById('hide-person');
+            const positionPersonBtn = document.getElementById('position-person-here');
+            const lookAtPersonBtn = document.getElementById('look-at-person');
+            
+            // Person positioning mode controls
+            const enablePersonPosBtn = document.getElementById('enable-person-positioning');
+            const disablePersonPosBtn = document.getElementById('disable-person-positioning');
+            
+            setNameBtn.addEventListener('click', () => setLocationPoint('person', 'position'));
+            setPersonTargetBtn.addEventListener('click', () => setLocationPoint('person', 'target'));
+            setCameraPosBtn.addEventListener('click', () => setLocationPoint('camera', 'position'));
+            setCameraTargetBtn.addEventListener('click', () => setLocationPoint('camera', 'target'));
+            saveLocationBtn.addEventListener('click', saveCurrentLocation);
+            exportLocationsBtn.addEventListener('click', exportLocations);
+            copyLocationsBtn.addEventListener('click', copyLocations);
+            
+            // Person visualization event listeners
+            showPersonBtn.addEventListener('click', showPersonModel);
+            hidePersonBtn.addEventListener('click', hidePersonModel);
+            positionPersonBtn.addEventListener('click', positionPersonAtCamera);
+            lookAtPersonBtn.addEventListener('click', lookAtPersonModel);
+            
+            // Person positioning mode event listeners
+            enablePersonPosBtn.addEventListener('click', enablePersonPositioning);
+            disablePersonPosBtn.addEventListener('click', disablePersonPositioning);
+            
+            // Update saved locations list
+            updateSavedLocationsList();
+        }
+
         // Initialize camera position saver
         function initCameraPositionSaver() {
             const saveBtn = document.getElementById('save-camera-position');
@@ -1564,9 +1674,394 @@
                 alert('Camera positions copied to clipboard!');
             });
         }
+
+        // Set location point (person position/target or camera position/target)
+        function setLocationPoint(type, pointType) {
+            const cameraPos = camera.position;
+            let targetPos;
+            
+            // Calculate target based on current navigation mode
+            if (navigationMode === 'fly') {
+                const direction = new THREE.Vector3(0, 0, -1);
+                direction.applyQuaternion(camera.quaternion);
+                targetPos = new THREE.Vector3().copy(camera.position).add(direction.multiplyScalar(10));
+            } else {
+                targetPos = controls.target;
+            }
+            
+            const position = {
+                x: parseFloat(cameraPos.x.toFixed(4)),
+                y: parseFloat(cameraPos.y.toFixed(4)),
+                z: parseFloat(cameraPos.z.toFixed(4))
+            };
+            
+            const target = {
+                x: parseFloat(targetPos.x.toFixed(4)),
+                y: parseFloat(targetPos.y.toFixed(4)),
+                z: parseFloat(targetPos.z.toFixed(4))
+            };
+            
+            if (pointType === 'position') {
+                currentLocationData[type].position = position;
+                console.log(`Set ${type} position:`, position);
+                
+                // If setting person position, also position the person model
+                if (type === 'person' && window.personModel) {
+                    window.personModel.position.set(position.x, position.y, position.z);
+                    window.personModel.visible = true;
+                    console.log('Person model positioned at:', position);
+                }
+            } else {
+                currentLocationData[type].target = target;
+                console.log(`Set ${type} target:`, target);
+                
+                // If setting person target, make person look at target
+                if (type === 'person' && window.personModel) {
+                    const personPos = window.personModel.position;
+                    const direction = new THREE.Vector3().subVectors(target, personPos).normalize();
+                    window.personModel.lookAt(personPos.clone().add(direction));
+                    console.log('Person model looking at:', target);
+                }
+            }
+            
+            // Update preview
+            updateLocationPreview();
+        }
+
+        // Update location preview
+        function updateLocationPreview() {
+            const preview = document.getElementById('location-preview');
+            const dataPreview = document.getElementById('location-data-preview');
+            
+            let html = '<div style="font-size: 0.8rem;">';
+            html += `<div><strong>Person Position:</strong> ${currentLocationData.person.position.x}, ${currentLocationData.person.position.y}, ${currentLocationData.person.position.z}</div>`;
+            html += `<div><strong>Person Target:</strong> ${currentLocationData.person.target.x}, ${currentLocationData.person.target.y}, ${currentLocationData.person.target.z}</div>`;
+            html += `<div><strong>Camera Position:</strong> ${currentLocationData.camera.position.x}, ${currentLocationData.camera.position.y}, ${currentLocationData.camera.position.z}</div>`;
+            html += `<div><strong>Camera Target:</strong> ${currentLocationData.camera.target.x}, ${currentLocationData.camera.target.y}, ${currentLocationData.camera.target.z}</div>`;
+            html += '</div>';
+            
+            dataPreview.innerHTML = html;
+            preview.style.display = 'block';
+        }
+
+        // Save current location
+        function saveCurrentLocation() {
+            const nameInput = document.getElementById('location-name');
+            const name = nameInput.value.trim();
+            
+            if (!name) {
+                alert('Please enter a location name');
+                return;
+            }
+            
+            // Check if name already exists
+            if (savedLocations.find(l => l.name === name)) {
+                alert('A location with this name already exists');
+                return;
+            }
+            
+            // Set the room coordinates (x, y, z) to the person position
+            currentLocationData.name = name;
+            currentLocationData.x = currentLocationData.person.position.x;
+            currentLocationData.y = currentLocationData.person.position.y;
+            currentLocationData.z = currentLocationData.person.position.z;
+            
+            // Create a copy for saving
+            const locationToSave = JSON.parse(JSON.stringify(currentLocationData));
+            savedLocations.push(locationToSave);
+            
+            updateSavedLocationsList();
+            nameInput.value = '';
+            
+            console.log('Saved location:', locationToSave);
+        }
+
+        // Update saved locations list
+        function updateSavedLocationsList() {
+            const listContainer = document.getElementById('saved-locations-list');
+            
+            if (savedLocations.length === 0) {
+                listContainer.innerHTML = '<p style="text-align: center; opacity: 0.6; padding: 20px;">No locations saved yet</p>';
+                return;
+            }
+            
+            listContainer.innerHTML = '';
+            
+            savedLocations.forEach((location, index) => {
+                const item = document.createElement('div');
+                item.className = 'point-item';
+                
+                item.innerHTML = `
+                    <span class="point-name">${location.name}</span>
+                    <span class="point-coords">${location.x}, ${location.y}, ${location.z}</span>
+                    <button class="delete-point" onclick="deleteLocation(${index})">×</button>
+                `;
+                
+                listContainer.appendChild(item);
+            });
+        }
+
+        // Delete location
+        function deleteLocation(index) {
+            savedLocations.splice(index, 1);
+            updateSavedLocationsList();
+        }
+
+        // Export locations as JavaScript object
+        function exportLocations() {
+            if (savedLocations.length === 0) {
+                alert('No locations to export');
+                return;
+            }
+            
+            const exportObject = {};
+            savedLocations.forEach(location => {
+                exportObject[location.name] = {
+                    x: location.x,
+                    y: location.y,
+                    z: location.z,
+                    person: {
+                        position: location.person.position,
+                        target: location.person.target
+                    },
+                    camera: {
+                        position: location.camera.position,
+                        target: location.camera.target
+                    }
+                };
+            });
+            
+            const exportString = `const LOCATIONS = ${JSON.stringify(exportObject, null, 4)};`;
+            
+            // Create and download file
+            const blob = new Blob([exportString], { type: 'text/javascript' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'locations.js';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            console.log('Exported locations:', exportString);
+        }
+
+        // Copy locations to clipboard
+        function copyLocations() {
+            if (savedLocations.length === 0) {
+                alert('No locations to copy');
+                return;
+            }
+            
+            const exportObject = {};
+            savedLocations.forEach(location => {
+                exportObject[location.name] = {
+                    x: location.x,
+                    y: location.y,
+                    z: location.z,
+                    person: {
+                        position: location.person.position,
+                        target: location.person.target
+                    },
+                    camera: {
+                        position: location.camera.position,
+                        target: location.camera.target
+                    }
+                };
+            });
+            
+            const exportString = `const LOCATIONS = ${JSON.stringify(exportObject, null, 4)};`;
+            
+            navigator.clipboard.writeText(exportString).then(() => {
+                alert('Locations copied to clipboard!');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = exportString;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Locations copied to clipboard!');
+            });
+        }
+
+        // Person model control functions
+        function showPersonModel() {
+            if (window.personModel) {
+                window.personModel.visible = true;
+                console.log('Person model shown');
+            } else {
+                alert('Person model not found. Please refresh the page.');
+            }
+        }
+
+        function hidePersonModel() {
+            if (window.personModel) {
+                window.personModel.visible = false;
+                console.log('Person model hidden');
+            }
+        }
+
+        function positionPersonAtCamera() {
+            if (!window.personModel) {
+                alert('Person model not found. Please refresh the page.');
+                return;
+            }
+
+            // Position person at current camera position
+            const cameraPos = camera.position;
+            window.personModel.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
+            window.personModel.visible = true;
+            
+            // Set person position in current location data
+            currentLocationData.person.position = {
+                x: parseFloat(cameraPos.x.toFixed(4)),
+                y: parseFloat(cameraPos.y.toFixed(4)),
+                z: parseFloat(cameraPos.z.toFixed(4))
+            };
+            
+            // Update preview
+            updateLocationPreview();
+            
+            console.log('Person positioned at camera location:', currentLocationData.person.position);
+        }
+
+        function lookAtPersonModel() {
+            if (!window.personModel) {
+                alert('Person model not found. Please refresh the page.');
+                return;
+            }
+
+            // Position camera to look at the person
+            const personPos = window.personModel.position;
+            
+            // Position camera slightly away from person
+            const direction = new THREE.Vector3(0, 0, -1);
+            if (navigationMode === 'fly') {
+                direction.applyQuaternion(camera.quaternion);
+            } else {
+                direction.subVectors(camera.position, personPos).normalize();
+            }
+            
+            const cameraOffset = direction.multiplyScalar(2); // 2 units away
+            camera.position.copy(personPos).add(cameraOffset);
+            
+            // Look at the person
+            controls.target.copy(personPos);
+            controls.update();
+            
+            console.log('Camera positioned to look at person at:', personPos);
+        }
+
+        // Person positioning mode functions
+        function enablePersonPositioning() {
+            isPersonPositioningMode = true;
+            isTracking = false; // Disable coordinate tracking when positioning person
+            
+            // Update button states
+            document.getElementById('enable-person-positioning').classList.add('active');
+            document.getElementById('disable-person-positioning').classList.remove('active');
+            document.getElementById('start-tracking').classList.remove('active');
+            document.getElementById('start-tracking').textContent = 'Start Tracking';
+            
+            // Show person model
+            if (window.personModel) {
+                window.personModel.visible = true;
+            }
+            
+            // Update cursor
+            const container = document.getElementById('canvas-container');
+            container.style.cursor = 'crosshair';
+            
+            console.log('Person positioning mode enabled - click anywhere to position person');
+        }
+
+        function disablePersonPositioning() {
+            isPersonPositioningMode = false;
+            
+            // Update button states
+            document.getElementById('enable-person-positioning').classList.remove('active');
+            document.getElementById('disable-person-positioning').classList.remove('active');
+            
+            // Reset cursor
+            const container = document.getElementById('canvas-container');
+            if (navigationMode === 'orbit') {
+                container.style.cursor = 'default';
+            } else if (navigationMode === 'object') {
+                container.style.cursor = 'move';
+            }
+            
+            console.log('Person positioning mode disabled');
+        }
+
+        function initPersonPositioning() {
+            // This function is called during initialization
+            console.log('Person positioning system initialized');
+        }
         
-        // Handle mouse click for coordinate tracking
+        // Handle mouse click for coordinate tracking and person positioning
         function onMouseClick(event) {
+            // Handle person positioning mode
+            if (isPersonPositioningMode) {
+                if (navigationMode === 'fly' && isPointerLocked) return; // Prevent clicks in fly mode
+                
+                const rect = event.target.getBoundingClientRect();
+                mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+                
+                raycaster.setFromCamera(mouse, camera);
+                
+                // Create array of objects to intersect with
+                const intersectObjects = [];
+                
+                // Add model if it exists
+                if (model) {
+                    model.traverse((child) => {
+                        if (child.isMesh) {
+                            intersectObjects.push(child);
+                        }
+                    });
+                }
+                
+                // Add grid helper for ground plane intersection
+                const gridHelper = scene.children.find(child => child.type === 'GridHelper');
+                if (gridHelper) {
+                    // Create invisible plane for ground intersection
+                    const planeGeometry = new THREE.PlaneGeometry(100, 100);
+                    const planeMaterial = new THREE.MeshBasicMaterial({ visible: false });
+                    const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+                    plane.rotation.x = -Math.PI / 2;
+                    plane.position.y = 0;
+                    intersectObjects.push(plane);
+                }
+                
+                const intersects = raycaster.intersectObjects(intersectObjects);
+                
+                if (intersects.length > 0 && window.personModel) {
+                    const point = intersects[0].point;
+                    
+                    // Position person at clicked location
+                    window.personModel.position.set(point.x, point.y, point.z);
+                    window.personModel.visible = true;
+                    
+                    // Update person position in current location data
+                    currentLocationData.person.position = {
+                        x: parseFloat(point.x.toFixed(4)),
+                        y: parseFloat(point.y.toFixed(4)),
+                        z: parseFloat(point.z.toFixed(4))
+                    };
+                    
+                    // Update preview
+                    updateLocationPreview();
+                    
+                    console.log('Person positioned at clicked location:', currentLocationData.person.position);
+                }
+                return;
+            }
+            
+            // Handle coordinate tracking mode
             if (!isTracking) return;
             if (navigationMode === 'fly' && isPointerLocked) return; // Prevent tracking clicks in fly mode
             
@@ -1979,6 +2474,88 @@
             
             scene.add(model);
         }
+
+        // Create a detailed person model for better visualization
+        function createPersonModel() {
+            const personGroup = new THREE.Group();
+            const scaleFactor = 0.5; // Scale factor for the person
+            
+            // Body
+            const bodyGeometry = new THREE.CylinderGeometry(0.03 * scaleFactor, 0.04 * scaleFactor, 0.12 * scaleFactor, 8);
+            const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x4169E1 });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.06 * scaleFactor;
+            personGroup.add(body);
+            
+            // Head
+            const headGeometry = new THREE.SphereGeometry(0.025 * scaleFactor, 8, 6);
+            const headMaterial = new THREE.MeshLambertMaterial({ color: 0xFFDBB5 });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 0.145 * scaleFactor;
+            personGroup.add(head);
+            
+            // Arms
+            const armGeometry = new THREE.CylinderGeometry(0.008 * scaleFactor, 0.008 * scaleFactor, 0.08 * scaleFactor, 6);
+            const armMaterial = new THREE.MeshLambertMaterial({ color: 0xFFDBB5 });
+            
+            const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+            leftArm.position.set(-0.045 * scaleFactor, 0.08 * scaleFactor, 0);
+            leftArm.rotation.z = 0.3;
+            personGroup.add(leftArm);
+            
+            const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+            rightArm.position.set(0.045 * scaleFactor, 0.08 * scaleFactor, 0);
+            rightArm.rotation.z = -0.3;
+            personGroup.add(rightArm);
+            
+            // Legs
+            const legGeometry = new THREE.CylinderGeometry(0.01 * scaleFactor, 0.01 * scaleFactor, 0.08 * scaleFactor, 6);
+            const legMaterial = new THREE.MeshLambertMaterial({ color: 0x2F4F4F });
+            
+            const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
+            leftLeg.position.set(-0.015 * scaleFactor, -0.04 * scaleFactor, 0);
+            personGroup.add(leftLeg);
+            
+            const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
+            rightLeg.position.set(0.015 * scaleFactor, -0.04 * scaleFactor, 0);
+            personGroup.add(rightLeg);
+            
+            // Add a direction indicator (arrow pointing forward)
+            const arrowGeometry = new THREE.ConeGeometry(0.01 * scaleFactor, 0.05 * scaleFactor, 8);
+            const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const directionArrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+            directionArrow.position.set(0, 0.1 * scaleFactor, 0.05 * scaleFactor);
+            directionArrow.rotation.x = Math.PI / 2;
+            personGroup.add(directionArrow);
+            
+            // Add a height indicator line
+            const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, -0.1 * scaleFactor, 0),
+                new THREE.Vector3(0, 0.2 * scaleFactor, 0)
+            ]);
+            const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.7 });
+            const heightLine = new THREE.Line(lineGeometry, lineMaterial);
+            personGroup.add(heightLine);
+            
+            // Add ground shadow
+            const shadowGeometry = new THREE.CircleGeometry(0.05 * scaleFactor, 16);
+            const shadowMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x000000, 
+                transparent: true, 
+                opacity: 0.3 
+            });
+            const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
+            shadow.position.set(0, -0.1 * scaleFactor, 0);
+            shadow.rotation.x = -Math.PI / 2;
+            personGroup.add(shadow);
+            
+            // Store reference for easy access
+            window.personModel = personGroup;
+            personGroup.visible = false;
+            scene.add(personGroup);
+            
+            console.log('Person model created and added to scene');
+        }
         
         // Initialize dropdown menu
         function initDropdown() {
@@ -2049,6 +2626,7 @@
         
         window.deletePoint = deletePoint;
         window.deleteCameraPosition = deleteCameraPosition;
+        window.deleteLocation = deleteLocation;
         init();
         animate();
     </script>

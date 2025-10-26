@@ -689,6 +689,49 @@ body.fly-mode .crosshair {
     }
 }
 
+/* Speed Slider Styles */
+.speed-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: rgba(50, 50, 80, 0.6);
+    border-radius: 3px;
+    outline: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.speed-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: linear-gradient(90deg, #00dbde, #fc00ff);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.speed-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: linear-gradient(90deg, #00dbde, #fc00ff);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.speed-value {
+    background: rgba(0, 219, 222, 0.2);
+    border: 1px solid rgba(0, 219, 222, 0.5);
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: #00dbde;
+    font-weight: bold;
+    font-family: monospace;
+}
+
 /* Cursor styles for different modes */
 .recording {
     cursor: crosshair !important;
@@ -732,6 +775,7 @@ body.fly-mode .crosshair {
                         <p>Press <span class="fly-key">U</span> to undo last point</p>
                         <p>Use <span class="fly-key">+</span> / <span class="fly-key">-</span> to adjust speed</p>
                         <p>Current Speed: <span id="speed-display">0.10</span></p>
+                        <p style="color: #00dbde; font-weight: bold;">📷 Camera capture available in control panel!</p>
                     </div>
                 </div>
             </div>
@@ -837,18 +881,75 @@ body.fly-mode .crosshair {
                     <div class="control-group">
                         <h2>Path Editor</h2>
                         <div class="instructions">
-                            <h3>How to create paths:</h3>
+                            <h3>How to create enhanced paths:</h3>
                             <ul>
                                 <li>Enter path name (use ID format like "1_2")</li>
+                                <li>Set floor, stair, and camera settings for each waypoint</li>
                                 <li>Click "Start Recording" to enter fly mode</li>
                                 <li>Fly to points and press 'P' to record</li>
+                                <li>Use "Capture Camera" while in fly mode for camera setup</li>
                                 <li>Press 'U' to undo last point</li>
-                                <li>Click "Save Path" when done</li>
+                                <li>Click "Stop Recording" to pause (stays in position)</li>
+                                <li>Click "Start Recording" again to resume (stays where you stopped)</li>
+                                <li>Click "Save Path" when done (exits fly mode)</li>
                                 <li>Export when finished</li>
+                            </ul>
+                            <h3>Enhanced Features:</h3>
+                            <ul>
+                                <li><strong>Floor:</strong> Set which floor each waypoint is on</li>
+                                <li><strong>Stair:</strong> Mark waypoints as stair areas</li>
+                                <li><strong>Camera:</strong> Capture camera while in fly mode</li>
+                                <li><strong>Speed:</strong> Adjust fly mode speed (0.01 - 1.0)</li>
+                                <li><strong>Position:</strong> Exit fly mode preserves your position</li>
+                                <li><strong>Pause/Resume:</strong> Stop and resume recording from same position</li>
+                                <li><strong>Fly Current:</strong> Enter fly mode from current position</li>
+                                <li><strong>Visual:</strong> Waypoints show floor colors and labels</li>
                             </ul>
                         </div>
                         
                         <input type="text" id="path-name" class="path-input" placeholder="Enter path name (e.g., 1_2 for Lab to Tennis)">
+                        
+                        <!-- Paste Waypoints Feature -->
+                        <div class="control-group">
+                            <h3>Paste Waypoints (JSON)</h3>
+                            <textarea id="paste-waypoints" class="path-input" placeholder='Paste waypoint JSON array here: [{"x": ..., "y": ..., "z": ..., "floor": ..., "isStair": ..., "camera": {...}}]' style="min-height: 100px; font-family: monospace; font-size: 0.8rem;"></textarea>
+                            <div class="control-buttons" style="margin-top: 8px;">
+                                <button id="load-waypoints" class="btn">Load Waypoints</button>
+                                <button id="clear-paste" class="btn danger" style="flex: 0;">Clear</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Enhanced Waypoint Settings -->
+                        <div class="control-group">
+                            <h3>Current Waypoint Settings</h3>
+                            
+                            <label style="font-size: 0.8rem; margin-bottom: 5px; display: block; color: #00dbde;">Floor:</label>
+                            <select id="waypoint-floor" class="path-input" style="margin-bottom: 8px;">
+                                <option value="1">Floor 1</option>
+                                <option value="2">Floor 2</option>
+                                <option value="3">Floor 3</option>
+                            </select>
+                            
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <input type="checkbox" id="waypoint-stair" style="margin-right: 8px;">
+                                <label for="waypoint-stair" style="font-size: 0.8rem; color: #00dbde;">Is Stair Area</label>
+                            </div>
+                            
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <input type="checkbox" id="waypoint-camera" style="margin-right: 8px;">
+                                <label for="waypoint-camera" style="font-size: 0.8rem; color: #00dbde;">Use Custom Camera</label>
+                            </div>
+                            
+                            <div id="camera-settings" style="display: none; margin-top: 8px;">
+                                <div class="control-buttons" style="margin-bottom: 8px;">
+                                    <button id="capture-camera" class="btn" style="flex: 1; font-size: 0.8rem;">Capture Current Camera</button>
+                                </div>
+                                <label style="font-size: 0.8rem; margin-bottom: 5px; display: block; color: #00dbde;">Camera Position:</label>
+                                <input type="text" id="camera-position" class="path-input" placeholder="x, y, z" style="margin-bottom: 5px;">
+                                <label style="font-size: 0.8rem; margin-bottom: 5px; display: block; color: #00dbde;">Camera Target:</label>
+                                <input type="text" id="camera-target" class="path-input" placeholder="x, y, z">
+                            </div>
+                        </div>
                         
                         <div class="control-buttons">
                             <button id="start-recording" class="btn primary">Start Recording</button>
@@ -863,7 +964,23 @@ body.fly-mode .crosshair {
                         
                         <div class="fly-mode-btn-container">
                             <button id="fly-mode" class="btn primary">Enter Fly Mode</button>
+                            <button id="fly-mode-current" class="btn" style="margin-top: 5px;">Fly from Current Position</button>
                             <div class="fly-mode-status" id="fly-mode-status">Fly Mode: Inactive</div>
+                        </div>
+                        
+                        <!-- Speed Control -->
+                        <div class="control-group">
+                            <h3>Speed Control</h3>
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                <label style="font-size: 0.8rem; color: #00dbde; min-width: 60px;">Speed:</label>
+                                <input type="range" id="speed-slider" class="speed-slider" min="0.01" max="1.0" step="0.01" value="0.1" style="flex: 1;">
+                                <div class="speed-value" id="speed-value" style="min-width: 50px; text-align: center; font-size: 0.8rem;">0.10</div>
+                            </div>
+                            <div class="control-buttons">
+                                <button id="speed-slow" class="btn" style="flex: 1; font-size: 0.8rem;">Slow (0.05)</button>
+                                <button id="speed-normal" class="btn" style="flex: 1; font-size: 0.8rem;">Normal (0.1)</button>
+                                <button id="speed-fast" class="btn" style="flex: 1; font-size: 0.8rem;">Fast (0.3)</button>
+                            </div>
                         </div>
                         
                         <div class="status-bar">
@@ -874,6 +991,22 @@ body.fly-mode .crosshair {
                             <div class="status-item">
                                 <span class="status-label">Points:</span>
                                 <span class="status-value" id="point-count">0</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Floor:</span>
+                                <span class="status-value" id="current-floor-display">1</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Stair:</span>
+                                <span class="status-value" id="stair-status">No</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Camera:</span>
+                                <span class="status-value" id="camera-status">Follow Person</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Speed:</span>
+                                <span class="status-value" id="speed-status">0.10</span>
                             </div>
                         </div>
                     </div>
@@ -886,9 +1019,12 @@ body.fly-mode .crosshair {
                         
                         <div class="control-buttons">
                             <button id="export-paths" class="btn primary">Export JSON</button>
-                            <button id="import-paths" class="btn">Import JSON</button>
+                            <button id="import-paths" class="btn">Import & Merge</button>
                         </div>
                         <input type="file" id="file-input" accept=".json" style="display: none;">
+                        <p style="font-size: 0.75rem; opacity: 0.7; margin-top: 5px; text-align: center;">
+                            Imports new paths without losing existing data. Duplicates will prompt to overwrite.
+                        </p>
                         
                         <div class="control-buttons">
                             <button id="reload-data" class="btn">Reload Data</button>
@@ -923,6 +1059,11 @@ body.fly-mode .crosshair {
         let isEditMode = false;
         let allPathLines = [];
         let lookAtIndicators = [];
+        
+        // Enhanced waypoint properties
+        let currentWaypointFloor = 1;
+        let currentWaypointIsStair = false;
+        let currentWaypointCamera = null;
         
         // Fly mode variables
         let flyControls = null;
@@ -1480,6 +1621,8 @@ body.fly-mode .crosshair {
         // Update speed display
         function updateSpeedDisplay() {
             const speedDisplay = document.getElementById('speed-display');
+            const speedStatus = document.getElementById('speed-status');
+            
             if (speedDisplay) {
                 speedDisplay.textContent = flySpeed.toFixed(2);
                 
@@ -1490,6 +1633,10 @@ body.fly-mode .crosshair {
                     speedDisplay.style.color = '';
                     speedDisplay.style.fontWeight = '';
                 }, 500);
+            }
+            
+            if (speedStatus) {
+                speedStatus.textContent = flySpeed.toFixed(2);
             }
         }
 
@@ -1588,6 +1735,35 @@ body.fly-mode .crosshair {
             console.log('🚀 Entered Fly Mode');
         }
         
+        // Enter fly mode from current camera position
+        function enterFlyModeFromCurrent() {
+            if (isFlyMode) return;
+            
+            isFlyMode = true;
+            document.getElementById('fly-mode-status').textContent = 'Fly Mode: Active';
+            
+            // Hide UI elements
+            document.getElementById('controls-drawer').style.display = 'none';
+            document.getElementById('burger-menu').style.display = 'none';
+            
+            // Show fly controls UI
+            document.getElementById('fly-controls').classList.add('active');
+            
+            // Enable pointer lock
+            document.body.requestPointerLock = document.body.requestPointerLock || document.body.mozRequestPointerLock || document.body.webkitRequestPointerLock;
+            document.body.requestPointerLock();
+            
+            // Enable fly controls
+            flyControls.lock();
+            flyControls.enabled = true;
+            
+            // Keep current camera position (don't reset)
+            console.log(`🚀 Entered Fly Mode from current position: (${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)})`);
+            
+            // Update speed display
+            updateSpeedDisplay();
+        }
+        
         // Exit fly mode
         function exitFlyMode() {
             if (!isFlyMode) return;
@@ -1618,10 +1794,20 @@ body.fly-mode .crosshair {
             moveUp = false;
             moveDown = false;
             
-            // Reset camera to default position
-            animateCamera(COORDINATES.DEFAULT.position, COORDINATES.DEFAULT.target, 1000);
+            // PRESERVE current camera position instead of resetting to default
+            const currentPosition = camera.position.clone();
+            const currentTarget = new THREE.Vector3();
             
-            console.log('🛑 Exited Fly Mode');
+            // Calculate target based on camera direction
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            currentTarget.copy(currentPosition).add(direction.multiplyScalar(10));
+            
+            // Set orbit controls to current position
+            controls.target.copy(currentTarget);
+            controls.update();
+            
+            console.log(`🛑 Exited Fly Mode - Preserved position: (${currentPosition.x.toFixed(2)}, ${currentPosition.y.toFixed(2)}, ${currentPosition.z.toFixed(2)})`);
         }
 
         // Initialize UI
@@ -1632,8 +1818,9 @@ body.fly-mode .crosshair {
             initPathEditor();
             initNavigationControls();
             
-            // Add fly mode button listener (in editor panel)
+            // Add fly mode button listeners (in editor panel)
             document.getElementById('fly-mode').addEventListener('click', enterFlyMode);
+            document.getElementById('fly-mode-current').addEventListener('click', enterFlyModeFromCurrent);
         }
 
         // INITIALIZE NAVIGATION CONTROLS
@@ -1673,10 +1860,12 @@ body.fly-mode .crosshair {
                 document.getElementById('canvas-container').style.cursor = 'default';
                 document.body.classList.remove('recording');
                 
-                // Exit fly mode when switching to navigation
+                // Exit fly mode when switching to navigation (preserves position)
                 if (isFlyMode) {
                     exitFlyMode();
                 }
+                
+                console.log('🔄 Switched to Navigation Mode - Camera position preserved');
             });
 
             editBtn.addEventListener('click', () => {
@@ -1706,6 +1895,161 @@ body.fly-mode .crosshair {
             // Data management buttons
             document.getElementById('reload-data').addEventListener('click', loadDataFromJSON);
             document.getElementById('show-all-paths').addEventListener('click', showAllPaths);
+            
+            // Paste waypoints button
+            document.getElementById('load-waypoints').addEventListener('click', loadPastedWaypoints);
+            document.getElementById('clear-paste').addEventListener('click', clearPasteArea);
+            
+            // Enhanced waypoint controls
+            initWaypointControls();
+        }
+        
+        // Initialize enhanced waypoint controls
+        function initWaypointControls() {
+            // Floor selection
+            document.getElementById('waypoint-floor').addEventListener('change', function() {
+                currentWaypointFloor = parseInt(this.value);
+                updateWaypointStatus();
+            });
+            
+            // Stair checkbox
+            document.getElementById('waypoint-stair').addEventListener('change', function() {
+                currentWaypointIsStair = this.checked;
+                updateWaypointStatus();
+            });
+            
+            // Camera checkbox
+            document.getElementById('waypoint-camera').addEventListener('change', function() {
+                const cameraSettings = document.getElementById('camera-settings');
+                if (this.checked) {
+                    cameraSettings.style.display = 'block';
+                } else {
+                    cameraSettings.style.display = 'none';
+                    currentWaypointCamera = null;
+                }
+                updateWaypointStatus();
+            });
+            
+            // Capture camera button
+            document.getElementById('capture-camera').addEventListener('click', captureCurrentCamera);
+            
+            // Camera position/target inputs
+            document.getElementById('camera-position').addEventListener('input', updateCameraFromInputs);
+            document.getElementById('camera-target').addEventListener('input', updateCameraFromInputs);
+            
+            // Initialize status display
+            updateWaypointStatus();
+            
+            // Initialize speed controls
+            initSpeedControls();
+        }
+        
+        // Initialize speed controls
+        function initSpeedControls() {
+            const speedSlider = document.getElementById('speed-slider');
+            const speedValue = document.getElementById('speed-value');
+            
+            // Speed slider
+            speedSlider.addEventListener('input', function() {
+                flySpeed = parseFloat(this.value);
+                speedValue.textContent = flySpeed.toFixed(2);
+                updateSpeedDisplay();
+            });
+            
+            // Speed preset buttons
+            document.getElementById('speed-slow').addEventListener('click', () => {
+                flySpeed = 0.05;
+                speedSlider.value = flySpeed;
+                speedValue.textContent = flySpeed.toFixed(2);
+                updateSpeedDisplay();
+            });
+            
+            document.getElementById('speed-normal').addEventListener('click', () => {
+                flySpeed = 0.1;
+                speedSlider.value = flySpeed;
+                speedValue.textContent = flySpeed.toFixed(2);
+                updateSpeedDisplay();
+            });
+            
+            document.getElementById('speed-fast').addEventListener('click', () => {
+                flySpeed = 0.3;
+                speedSlider.value = flySpeed;
+                speedValue.textContent = flySpeed.toFixed(2);
+                updateSpeedDisplay();
+            });
+            
+            // Initialize display
+            updateSpeedDisplay();
+        }
+        
+        // Update waypoint status display
+        function updateWaypointStatus() {
+            document.getElementById('current-floor-display').textContent = currentWaypointFloor;
+            document.getElementById('stair-status').textContent = currentWaypointIsStair ? 'Yes' : 'No';
+            
+            if (document.getElementById('waypoint-camera').checked && currentWaypointCamera) {
+                document.getElementById('camera-status').textContent = 'Custom Camera';
+            } else {
+                document.getElementById('camera-status').textContent = 'Follow Person';
+            }
+        }
+        
+        // Capture current camera position and target
+        function captureCurrentCamera() {
+            let position, target;
+            
+            // Use fly mode camera if in fly mode, otherwise use orbit controls
+            if (isFlyMode && flyControls.enabled) {
+                position = camera.position;
+                // For fly mode, calculate target based on camera direction
+                const direction = new THREE.Vector3();
+                camera.getWorldDirection(direction);
+                target = camera.position.clone().add(direction.multiplyScalar(10));
+            } else {
+                position = camera.position;
+                target = controls.target;
+            }
+            
+            document.getElementById('camera-position').value = 
+                `${position.x.toFixed(4)}, ${position.y.toFixed(4)}, ${position.z.toFixed(4)}`;
+            document.getElementById('camera-target').value = 
+                `${target.x.toFixed(4)}, ${target.y.toFixed(4)}, ${target.z.toFixed(4)}`;
+            
+            updateCameraFromInputs();
+            
+            // Visual feedback
+            const button = document.getElementById('capture-camera');
+            button.textContent = '✓ Captured!';
+            button.style.background = 'rgba(0, 255, 0, 0.6)';
+            setTimeout(() => {
+                button.textContent = 'Capture Current Camera';
+                button.style.background = '';
+            }, 1000);
+            
+            console.log(`📷 Camera captured: Position(${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)}) Target(${target.x.toFixed(2)}, ${target.y.toFixed(2)}, ${target.z.toFixed(2)})`);
+        }
+        
+        // Update camera object from input fields
+        function updateCameraFromInputs() {
+            const positionText = document.getElementById('camera-position').value;
+            const targetText = document.getElementById('camera-target').value;
+            
+            if (positionText && targetText) {
+                try {
+                    const posCoords = positionText.split(',').map(s => parseFloat(s.trim()));
+                    const targetCoords = targetText.split(',').map(s => parseFloat(s.trim()));
+                    
+                    if (posCoords.length === 3 && targetCoords.length === 3) {
+                        currentWaypointCamera = {
+                            position: { x: posCoords[0], y: posCoords[1], z: posCoords[2] },
+                            target: { x: targetCoords[0], y: targetCoords[1], z: targetCoords[2] }
+                        };
+                        updateWaypointStatus();
+                    }
+                } catch (error) {
+                    console.warn('Invalid camera coordinates:', error);
+                }
+            }
         }
 
         // Show Look Up function
@@ -1723,6 +2067,106 @@ body.fly-mode .crosshair {
             });
             
             alert(message);
+        }
+        
+        // Load pasted waypoints into current recording path
+        function loadPastedWaypoints() {
+            const pasteArea = document.getElementById('paste-waypoints');
+            const waypointsText = pasteArea.value.trim();
+            
+            if (!waypointsText) {
+                alert('Please paste waypoint JSON data first');
+                return;
+            }
+            
+            try {
+                // Try to parse as JSON array
+                const waypoints = JSON.parse(waypointsText);
+                
+                if (!Array.isArray(waypoints)) {
+                    alert('Waypoints must be a JSON array');
+                    return;
+                }
+                
+                if (waypoints.length === 0) {
+                    alert('Waypoint array is empty');
+                    return;
+                }
+                
+                // Clear existing markers
+                recordingMarkers.forEach(marker => scene.remove(marker));
+                recordingMarkers = [];
+                
+                // Add waypoints to current recording path
+                currentRecordingPath = [...waypoints];
+                
+                // Create visual markers for each waypoint
+                waypoints.forEach((waypoint, index) => {
+                    // Determine floor color
+                    const floorColors = {
+                        1: 0xff0000, // Red for floor 1
+                        2: 0xffff00, // Yellow for floor 2
+                        3: 0x0000ff  // Blue for floor 3
+                    };
+                    const color = floorColors[waypoint.floor] || 0x00ff00;
+                    
+                    // Create marker
+                    const geometry = new THREE.SphereGeometry(0.03, 8, 6);
+                    const material = new THREE.MeshBasicMaterial({ 
+                        color: color,
+                        transparent: true,
+                        opacity: 0.8
+                    });
+                    
+                    const marker = new THREE.Mesh(geometry, material);
+                    marker.position.set(waypoint.x, waypoint.y + 0.03, waypoint.z);
+                    marker.userData = { 
+                        isRecordingMarker: true,
+                        floor: waypoint.floor,
+                        isStair: waypoint.isStair,
+                        hasCamera: !!waypoint.camera
+                    };
+                    scene.add(marker);
+                    recordingMarkers.push(marker);
+                    
+                    // Add floor label
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.width = 128;
+                    canvas.height = 32;
+                    context.fillStyle = '#ffffff';
+                    context.font = '12px Arial';
+                    context.textAlign = 'center';
+                    context.fillText(`F${waypoint.floor}${waypoint.isStair ? 'S' : ''}`, 64, 20);
+                    
+                    const texture = new THREE.CanvasTexture(canvas);
+                    const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+                    const sprite = new THREE.Sprite(spriteMaterial);
+                    sprite.position.set(waypoint.x, waypoint.y + 0.15, waypoint.z);
+                    sprite.scale.set(0.3, 0.075, 1);
+                    sprite.userData = { isRecordingLabel: true };
+                    scene.add(sprite);
+                    recordingMarkers.push(sprite);
+                });
+                
+                // Update path visualization
+                updateRecordingPath();
+                
+                // Update status
+                document.getElementById('point-count').textContent = waypoints.length;
+                document.getElementById('recording-status').textContent = 'Loaded';
+                
+                alert(`✅ Loaded ${waypoints.length} waypoints from paste area`);
+                
+            } catch (error) {
+                alert('Error parsing waypoint JSON: ' + error.message);
+                console.error('Parse error:', error);
+            }
+        }
+        
+        // Clear paste area
+        function clearPasteArea() {
+            document.getElementById('paste-waypoints').value = '';
         }
 
         // Mouse click handler for path recording
@@ -1778,10 +2222,12 @@ body.fly-mode .crosshair {
                 document.getElementById('canvas-container').style.cursor = 'crosshair';
                 document.getElementById('recording-status').textContent = 'Recording';
                 
-                // Automatically enter fly mode when starting recording
+                // Enter fly mode from current position when resuming recording
                 if (!isFlyMode) {
-                    enterFlyMode();
+                    enterFlyModeFromCurrent();
                 }
+                
+                console.log('🎬 Recording started/resumed - staying at current position');
             } else {
                 btn.textContent = 'Start Recording';
                 btn.classList.remove('active');
@@ -1789,10 +2235,8 @@ body.fly-mode .crosshair {
                 document.getElementById('recording-status').textContent = 'Stopped';
                 document.body.classList.remove('recording');
                 
-                // Automatically exit fly mode when stopping recording
-                if (isFlyMode) {
-                    exitFlyMode();
-                }
+                // DON'T exit fly mode when stopping recording - keep it for camera capture
+                console.log('🎬 Recording paused, fly mode remains active for camera capture');
             }
         }
 
@@ -1800,24 +2244,58 @@ body.fly-mode .crosshair {
             const pathPoint = {
                 x: parseFloat(point.x.toFixed(4)),
                 y: parseFloat(point.y.toFixed(4)),
-                z: parseFloat(point.z.toFixed(4))
+                z: parseFloat(point.z.toFixed(4)),
+                floor: currentWaypointFloor,
+                isStair: currentWaypointIsStair,
+                camera: currentWaypointCamera ? { ...currentWaypointCamera } : null
             };
 
             currentRecordingPath.push(pathPoint);
 
-            // Add visual marker
+            // Add visual marker with floor-based color
             const geometry = new THREE.SphereGeometry(0.03, 8, 6);
+            const floorColors = {
+                1: 0xff0000, // Red for floor 1
+                2: 0xffff00, // Yellow for floor 2
+                3: 0x0000ff  // Blue for floor 3
+            };
+            const color = floorColors[currentWaypointFloor] || 0x00ff00;
+            
             const material = new THREE.MeshBasicMaterial({ 
-                color: 0x00ff00,
+                color: color,
                 transparent: true,
                 opacity: 0.8
             });
 
             const marker = new THREE.Mesh(geometry, material);
             marker.position.set(pathPoint.x, pathPoint.y + 0.03, pathPoint.z);
-            marker.userData = { isRecordingMarker: true };
+            marker.userData = { 
+                isRecordingMarker: true,
+                floor: currentWaypointFloor,
+                isStair: currentWaypointIsStair,
+                hasCamera: !!currentWaypointCamera
+            };
             scene.add(marker);
             recordingMarkers.push(marker);
+
+            // Add floor label
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 128;
+            canvas.height = 32;
+            context.fillStyle = '#ffffff';
+            context.font = '12px Arial';
+            context.textAlign = 'center';
+            context.fillText(`F${currentWaypointFloor}${currentWaypointIsStair ? 'S' : ''}`, 64, 20);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.position.set(pathPoint.x, pathPoint.y + 0.15, pathPoint.z);
+            sprite.scale.set(0.3, 0.075, 1);
+            sprite.userData = { isRecordingLabel: true };
+            scene.add(sprite);
+            recordingMarkers.push(sprite);
 
             // Add connecting line if more than one point
             if (currentRecordingPath.length > 1) {
@@ -1825,6 +2303,8 @@ body.fly-mode .crosshair {
             }
 
             document.getElementById('point-count').textContent = currentRecordingPath.length;
+            
+            console.log(`Added waypoint: Floor ${currentWaypointFloor}, Stair: ${currentWaypointIsStair}, Camera: ${currentWaypointCamera ? 'Custom' : 'Follow Person'}`);
         }
 
         function updateRecordingPath() {
@@ -1863,7 +2343,7 @@ body.fly-mode .crosshair {
                 return;
             }
 
-            // Save both path and lookout point
+            // Save enhanced path with waypoint properties
             savedPaths[pathName] = [...currentRecordingPath];
             PREDEFINED_PATHS[pathName] = { 
                 path: [...currentRecordingPath],
@@ -1874,10 +2354,28 @@ body.fly-mode .crosshair {
             clearCurrentPath();
             document.getElementById('path-name').value = '';
             
+            // Reset waypoint settings
+            document.getElementById('waypoint-floor').value = '1';
+            document.getElementById('waypoint-stair').checked = false;
+            document.getElementById('waypoint-camera').checked = false;
+            document.getElementById('camera-settings').style.display = 'none';
+            currentWaypointFloor = 1;
+            currentWaypointIsStair = false;
+            currentWaypointCamera = null;
+            updateWaypointStatus();
+            
             // Update loaded path count
             document.getElementById('loaded-path-count').textContent = Object.keys(PREDEFINED_PATHS).length;
             
-            alert(`Path "${pathName}" saved with ${currentRecordingPath.length} points and lookout`);
+            // Show detailed save message
+            const stairCount = currentRecordingPath.filter(p => p.isStair).length;
+            const cameraCount = currentRecordingPath.filter(p => p.camera).length;
+            alert(`Path "${pathName}" saved with ${currentRecordingPath.length} waypoints:\n- ${stairCount} stair areas\n- ${cameraCount} custom camera points\n- Floor transitions included`);
+            
+            // Exit fly mode after saving
+            if (isFlyMode) {
+                exitFlyMode();
+            }
         }
         
         // Calculate an elevated lookout point for the path
@@ -1911,6 +2409,23 @@ body.fly-mode .crosshair {
             }
 
             document.getElementById('point-count').textContent = '0';
+            
+            // Reset waypoint settings
+            document.getElementById('waypoint-floor').value = '1';
+            document.getElementById('waypoint-stair').checked = false;
+            document.getElementById('waypoint-camera').checked = false;
+            document.getElementById('camera-settings').style.display = 'none';
+            document.getElementById('camera-position').value = '';
+            document.getElementById('camera-target').value = '';
+            currentWaypointFloor = 1;
+            currentWaypointIsStair = false;
+            currentWaypointCamera = null;
+            updateWaypointStatus();
+            
+            // Exit fly mode when clearing path
+            if (isFlyMode) {
+                exitFlyMode();
+            }
         }
 
         function undoLastPoint() {
@@ -1944,10 +2459,20 @@ body.fly-mode .crosshair {
                 const isFromJSON = PREDEFINED_PATHS[name] && PREDEFINED_PATHS[name].path.length === path.length;
                 const sourceIcon = isFromJSON ? '📁' : '✏️';
                 
+                // Analyze path properties
+                const floors = [...new Set(path.map(p => p.floor || 1))];
+                const stairCount = path.filter(p => p.isStair).length;
+                const cameraCount = path.filter(p => p.camera).length;
+                
+                const floorText = floors.length > 1 ? `Floors: ${floors.join(', ')}` : `Floor: ${floors[0]}`;
+                const stairText = stairCount > 0 ? `, ${stairCount} stairs` : '';
+                const cameraText = cameraCount > 0 ? `, ${cameraCount} cameras` : '';
+                
                 item.innerHTML = `
                     <div>
                         <div style="font-weight: bold; color: #00dbde;">${sourceIcon} ${name}</div>
-                        <div style="font-size: 0.8rem; opacity: 0.7;">${path.length} points ${isFromJSON ? '(from JSON)' : '(created)'}</div>
+                        <div style="font-size: 0.8rem; opacity: 0.7;">${path.length} waypoints ${isFromJSON ? '(from JSON)' : '(created)'}</div>
+                        <div style="font-size: 0.75rem; opacity: 0.6;">${floorText}${stairText}${cameraText}</div>
                     </div>
                     <button class="btn danger" onclick="deletePath('${name}')" style="padding: 4px 8px; margin: 0;">×</button>
                 `;
@@ -1992,10 +2517,10 @@ body.fly-mode .crosshair {
                 };
             });
 
-            // Add paths
+            // Add enhanced paths with waypoint properties
             Object.entries(savedPaths).forEach(([pathName, pathPoints]) => {
                 exportData.paths[pathName] = {
-                    path: pathPoints,
+                    path: pathPoints, // Now includes floor, isStair, camera properties
                     lookout: calculateLookoutPoint()
                 };
             });
@@ -2038,18 +2563,65 @@ body.fly-mode .crosshair {
                     }
                     
                     if (data.paths) {
+                        let newPathsCount = 0;
+                        let duplicatedPaths = [];
+                        let overwrittenPaths = [];
+                        
+                        // First pass: identify duplicates
+                        Object.keys(data.paths).forEach(pathId => {
+                            if (PREDEFINED_PATHS[pathId]) {
+                                duplicatedPaths.push(pathId);
+                            }
+                        });
+                        
+                        // Ask about duplicates once
+                        let shouldOverwriteAll = false;
+                        if (duplicatedPaths.length > 0) {
+                            const duplicateCount = duplicatedPaths.length;
+                            const userChoice = confirm(
+                                `${duplicateCount} path(s) already exist (${duplicatedPaths.slice(0, 3).join(', ')}${duplicatedPaths.length > 3 ? '...' : ''}).\n\n` +
+                                `OK = Overwrite all duplicates\n` +
+                                `Cancel = Skip all duplicates and keep only new paths`
+                            );
+                            shouldOverwriteAll = userChoice;
+                        }
+                        
+                        // Process paths
                         Object.entries(data.paths).forEach(([pathId, pathData]) => {
                             if (pathData.path) {
+                                // Check if path already exists
+                                if (PREDEFINED_PATHS[pathId]) {
+                                    // Skip if user chose to keep existing
+                                    if (!shouldOverwriteAll) {
+                                        console.log(`Skipped existing path: ${pathId}`);
+                                        return; // Skip this iteration
+                                    }
+                                    overwrittenPaths.push(pathId);
+                                }
+                                
+                                // Add or update path
                                 savedPaths[pathId] = pathData.path;
                                 PREDEFINED_PATHS[pathId] = {
                                     path: pathData.path,
                                     lookout: pathData.lookout
                                 };
+                                newPathsCount++;
                             }
                         });
+                        
                         updatePathList();
+                        updateLocationDropdowns();
+                        addCampusPointMarkers();
                         document.getElementById('loaded-path-count').textContent = Object.keys(PREDEFINED_PATHS).length;
-                        alert(`Imported ${Object.keys(data.paths).length} paths and ${Object.keys(data.locations || {}).length} locations`);
+                        
+                        let message = `✅ Imported ${newPathsCount} path(s)`;
+                        if (overwrittenPaths.length > 0) {
+                            message += ` (${overwrittenPaths.length} overwritten)`;
+                        }
+                        if (data.locations) {
+                            message += `\n✅ Imported ${Object.keys(data.locations).length} location(s)`;
+                        }
+                        alert(message);
                     } else {
                         alert('Invalid file format');
                     }

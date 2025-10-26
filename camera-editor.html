@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Position & POV Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0c0c1a;
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: linear-gradient(135deg, #1a1a3a 0%, #0c0c1a 100%);
+            border-right: 1px solid #2a2a4a;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .main-content {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a1a3a 0%, #0c0c1a 100%);
+            padding: 1rem;
+            border-bottom: 1px solid #2a2a4a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(100, 149, 237, 0.5);
+        }
+
+        .viewer-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(28, 28, 48, 0.9);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+        }
+
+        .loading.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #4169E1;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .section {
+            background: rgba(50, 50, 80, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid #2a2a4a;
+        }
+
+        .section h3 {
+            color: #4169E1;
+            margin-bottom: 0.8rem;
+            font-size: 1rem;
+        }
+
+        .control-group {
+            margin-bottom: 1rem;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 0.3rem;
+            font-size: 0.9rem;
+            color: #a0a0d0;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 0.4rem;
+            background: rgba(40, 40, 65, 0.8);
+            border: 1px solid #2a2a4a;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #4169E1;
+            box-shadow: 0 0 5px rgba(65, 105, 225, 0.3);
+        }
+
+        .input-group select {
+            width: 100%;
+            padding: 0.4rem;
+            background: rgba(40, 40, 65, 0.8);
+            border: 1px solid #2a2a4a;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        .input-group select:focus {
+            outline: none;
+            border-color: #4169E1;
+            box-shadow: 0 0 5px rgba(65, 105, 225, 0.3);
+        }
+
+        .input-group select option {
+            background: rgba(40, 40, 65, 0.9);
+            color: #fff;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #4169E1;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(65, 105, 225, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #5a7de9;
+            transform: scale(1.1);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #4169E1;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(65, 105, 225, 0.3);
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            background: rgba(50, 50, 80, 0.8);
+            border: 1px solid #2a2a4a;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .btn:hover {
+            background: rgba(70, 70, 100, 0.9);
+            transform: translateY(-2px);
+        }
+
+        .btn.primary {
+            background: #4169E1;
+        }
+
+        .btn.primary:hover {
+            background: #5a7de9;
+        }
+
+        .btn.danger {
+            background: #dc3545;
+        }
+
+        .btn.danger:hover {
+            background: #c82333;
+        }
+
+        .btn.success {
+            background: #28a745;
+        }
+
+        .btn.success:hover {
+            background: #218838;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn:disabled:hover {
+            background: rgba(50, 50, 80, 0.8);
+            transform: none;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .camera-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #2a2a4a;
+            border-radius: 4px;
+            background: rgba(40, 40, 65, 0.5);
+        }
+
+        .camera-item {
+            padding: 0.5rem;
+            border-bottom: 1px solid #2a2a4a;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .camera-item:hover {
+            background: rgba(90, 90, 140, 0.8);
+        }
+
+        .camera-item.selected {
+            background: #4169E1;
+        }
+
+        .camera-item:last-child {
+            border-bottom: none;
+        }
+
+        .camera-name {
+            font-weight: 500;
+        }
+
+        .camera-coords {
+            font-size: 0.8rem;
+            color: #a0a0d0;
+        }
+
+        .status-bar {
+            background: rgba(50, 50, 80, 0.6);
+            padding: 0.5rem 1rem;
+            border-top: 1px solid #2a2a4a;
+            font-size: 0.9rem;
+            color: #a0a0d0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .coordinates-display {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+        }
+
+        .export-section {
+            margin-top: auto;
+            padding-top: 1rem;
+            border-top: 1px solid #2a2a4a;
+        }
+
+        .export-textarea {
+            width: 100%;
+            height: 120px;
+            background: rgba(40, 40, 65, 0.8);
+            border: 1px solid #2a2a4a;
+            border-radius: 4px;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            padding: 0.5rem;
+            resize: vertical;
+        }
+
+        .export-textarea:focus {
+            outline: none;
+            border-color: #4169E1;
+            box-shadow: 0 0 5px rgba(65, 105, 225, 0.3);
+        }
+
+        .camera-visualization {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #2a2a4a;
+            z-index: 10;
+        }
+
+        .camera-visualization h4 {
+            color: #4169E1;
+            margin-bottom: 0.5rem;
+        }
+
+        .camera-info {
+            font-size: 0.9rem;
+            color: #a0a0d0;
+        }
+
+        .camera-info div {
+            margin-bottom: 0.3rem;
+        }
+
+        .camera-info .label {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        /* Fly Mode Controls */
+        .fly-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(20, 20, 35, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            padding: 15px;
+            z-index: 50;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 219, 222, 0.3);
+        }
+
+        .fly-controls.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .fly-mode-btn {
+            background: linear-gradient(90deg, #00dbde, #fc00ff);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            padding: 8px 15px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+        }
+
+        .fly-instructions {
+            font-size: 0.8rem;
+            line-height: 1.5;
+        }
+
+        .fly-instructions p {
+            margin-bottom: 5px;
+        }
+
+        .fly-key {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            padding: 2px 6px;
+            margin: 0 2px;
+            font-family: monospace;
+            font-size: 0.75rem;
+        }
+
+        /* Crosshair for fly mode */
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 40;
+        }
+
+        .crosshair::before, .crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(0, 219, 222, 0.8);
+        }
+
+        .crosshair::before {
+            width: 2px;
+            height: 20px;
+            left: 9px;
+            top: 0;
+        }
+
+        .crosshair::after {
+            width: 20px;
+            height: 2px;
+            left: 0;
+            top: 9px;
+        }
+
+        body.fly-mode .crosshair {
+            opacity: 1;
+        }
+
+        /* Cursor styles for different modes */
+        .fly-mode {
+            cursor: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 40vh;
+            }
+            
+            .main-content {
+                height: 60vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="section">
+                <h3>Walk/Fly Mode Controls</h3>
+                <div class="control-group">
+                    <label>Movement Speed</label>
+                    <input type="range" id="speed-slider" min="0.01" max="1.0" step="0.01" value="0.1">
+                    <div style="text-align: center; font-size: 0.8rem; color: #4169E1; margin-top: 0.3rem;">
+                        <span id="speed-value">0.10</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>Controls</label>
+                    <div style="font-size: 0.8rem; color: #a0a0d0; padding: 0.5rem; background: rgba(40, 40, 65, 0.5); border-radius: 4px;">
+                        <strong>WASD:</strong> Walk forward/back/left/right<br>
+                        <strong>Shift:</strong> Fly down<br>
+                        <strong>Space:</strong> Fly up<br>
+                        <strong>Mouse:</strong> Look around
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn primary" id="toggle-fly-mode">Toggle Fly Mode</button>
+                </div>
+                <div class="control-group">
+                    <label>Fly Mode Status</label>
+                    <div id="fly-mode-status" style="font-size: 0.8rem; color: #00dbde; padding: 0.5rem; background: rgba(40, 40, 65, 0.5); border-radius: 4px; text-align: center;">
+                        Fly Mode: Inactive
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Location Selection</h3>
+                <div class="control-group">
+                    <label>Select Location</label>
+                    <select id="location-select" class="input-group">
+                        <option value="">Choose a location...</option>
+                    </select>
+                </div>
+                <div class="btn-group">
+                    <button class="btn primary" id="go-to-location">Go to Location</button>
+                    <button class="btn" id="look-at-location">Look at Location</button>
+                </div>
+                <div class="control-group">
+                    <label>Location Info</label>
+                    <div id="location-info" style="font-size: 0.8rem; color: #a0a0d0; padding: 0.5rem; background: rgba(40, 40, 65, 0.5); border-radius: 4px;">
+                        No location selected
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Camera Position</h3>
+                <div class="control-group">
+                    <label>X Position</label>
+                    <input type="number" id="camera-x" step="0.001" placeholder="0.000">
+                </div>
+                <div class="control-group">
+                    <label>Y Position</label>
+                    <input type="number" id="camera-y" step="0.001" placeholder="0.000">
+                </div>
+                <div class="control-group">
+                    <label>Z Position</label>
+                    <input type="number" id="camera-z" step="0.001" placeholder="0.000">
+                </div>
+                <div class="btn-group">
+                    <button class="btn primary" id="capture-position">Capture Current</button>
+                    <button class="btn" id="apply-position">Apply Position</button>
+                </div>
+                
+                <!-- Quick Test Coordinates -->
+                <div class="control-group">
+                    <label>Quick Test Coordinates</label>
+                    <div style="font-size: 0.8rem; color: #a0a0d0; margin-bottom: 0.5rem;">
+                        Paste coordinates here: "x,y,z" format
+                    </div>
+                    <input type="text" id="quick-position" placeholder="e.g., -17.649, 1.120, 0.754" style="width: 100%; padding: 0.4rem; background: rgba(40, 40, 65, 0.8); border: 1px solid #2a2a4a; border-radius: 4px; color: #fff;">
+                    <button class="btn" id="apply-quick-position" style="margin-top: 0.5rem; width: 100%;">Apply Quick Position</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Camera Target (Look At)</h3>
+                <div class="control-group">
+                    <label>Target X</label>
+                    <input type="number" id="target-x" step="0.001" placeholder="0.000">
+                </div>
+                <div class="control-group">
+                    <label>Target Y</label>
+                    <input type="number" id="target-y" step="0.001" placeholder="0.000">
+                </div>
+                <div class="control-group">
+                    <label>Target Z</label>
+                    <input type="number" id="target-z" step="0.001" placeholder="0.000">
+                </div>
+                <div class="btn-group">
+                    <button class="btn primary" id="capture-target">Capture Current</button>
+                    <button class="btn" id="apply-target">Apply Target</button>
+                </div>
+                
+                <!-- Quick Test Target Coordinates -->
+                <div class="control-group">
+                    <label>Quick Test Target</label>
+                    <div style="font-size: 0.8rem; color: #a0a0d0; margin-bottom: 0.5rem;">
+                        Paste target coordinates here: "x,y,z" format
+                    </div>
+                    <input type="text" id="quick-target" placeholder="e.g., 12.893, 2.259, -5.585" style="width: 100%; padding: 0.4rem; background: rgba(40, 40, 65, 0.8); border: 1px solid #2a2a4a; border-radius: 4px; color: #fff;">
+                    <button class="btn" id="apply-quick-target" style="margin-top: 0.5rem; width: 100%;">Apply Quick Target</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Preset Camera Positions</h3>
+                <div class="control-group">
+                    <label>Quick Test from JSON Data</label>
+                    <div style="font-size: 0.8rem; color: #a0a0d0; margin-bottom: 0.5rem;">
+                        Test camera positions from your path.json data
+                    </div>
+                    <div class="btn-group" style="flex-direction: column; gap: 0.3rem;">
+                        <button class="btn" id="test-room308-destination">Test room308 destination</button>
+                        <button class="btn" id="test-room308-camera">Test room308 camera</button>
+                        <button class="btn" id="test-default-view">Test default view</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Camera Management</h3>
+                <div class="control-group">
+                    <label>Camera Name</label>
+                    <input type="text" id="camera-name" placeholder="Enter camera name">
+                </div>
+                <div class="btn-group">
+                    <button class="btn success" id="save-camera">Save Camera</button>
+                    <button class="btn danger" id="delete-camera">Delete</button>
+                </div>
+                
+                <div class="control-group">
+                    <label>Saved Cameras</label>
+                    <div class="camera-list" id="camera-list"></div>
+                </div>
+            </div>
+
+            <div class="section export-section">
+                <h3>Export Configuration</h3>
+                <div class="control-group">
+                    <label>Camera Positions JSON</label>
+                    <textarea class="export-textarea" id="export-textarea" readonly placeholder="Camera configurations will appear here..."></textarea>
+                </div>
+                <div class="btn-group">
+                    <button class="btn primary" id="export-cameras">Export All</button>
+                    <button class="btn" id="copy-to-clipboard">Copy</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <h1>Camera Position & POV Editor</h1>
+                <div class="coordinates-display" id="coordinates-display">
+                    Position: (0.000, 0.000, 0.000) | Target: (0.000, 0.000, 0.000)
+                </div>
+            </div>
+            
+            <div class="viewer-container">
+                <div id="canvas-container"></div>
+                <!-- Crosshair for fly mode -->
+                <div class="crosshair" id="crosshair"></div>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <h3>Loading Campus Model...</h3>
+                    <p>Preparing camera editor</p>
+                </div>
+                
+                <!-- Fly Mode Controls -->
+                <div class="fly-controls" id="fly-controls">
+                    <button id="exit-fly-mode" class="fly-mode-btn">
+                        <span>✕</span> Exit Fly Mode
+                    </button>
+                    <div class="fly-instructions">
+                        <p>Use <span class="fly-key">W</span> <span class="fly-key">A</span> <span class="fly-key">S</span> <span class="fly-key">D</span> to move</p>
+                        <p>Press <span class="fly-key">SPACE</span> to go up, <span class="fly-key">SHIFT</span> to go down</p>
+                        <p>Move mouse to look around</p>
+                        <p>Use <span class="fly-key">+</span> / <span class="fly-key">-</span> to adjust speed</p>
+                        <p>Current Speed: <span id="speed-display">0.10</span></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="status-bar">
+                <div>Camera Editor Ready</div>
+                <div id="status-info">Use mouse to orbit, scroll to zoom</div>
+            </div>
+        </div>
+
+        <div class="camera-visualization" id="camera-visualization" style="display: none;">
+            <h4>Current Camera</h4>
+            <div class="camera-info">
+                <div><span class="label">Position:</span> <span id="current-position">(0, 0, 0)</span></div>
+                <div><span class="label">Target:</span> <span id="current-target">(0, 0, 0)</span></div>
+                <div><span class="label">Distance:</span> <span id="camera-distance">0.00</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js Scripts -->
+    <script src="./threejs/three.min.js"></script>
+    <script src="./threejs/GLTFLoader.min.js"></script>
+    <script src="./threejs/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+
+    <script>
+        // Global variables
+        let scene, camera, renderer, controls;
+        let model = null;
+        let cameraHelper = null;
+        let savedCameras = {};
+        let selectedCameraId = null;
+        let campusPoints = {};
+        let predefinedPaths = {};
+        let isFlyMode = true;
+        let moveSpeed = 0.1;
+        let keys = {};
+        
+        // Fly mode variables (like path-editor)
+        let flyControls = null;
+        let moveForward = false;
+        let moveBackward = false;
+        let moveLeft = false;
+        let moveRight = false;
+        let moveUp = false;
+        let moveDown = false;
+        let flySpeed = 0.1;
+
+        // Initialize the application
+        async function init() {
+            createScene();
+            await loadJSONData();
+            await loadModel();
+            initUI();
+            animate();
+        }
+
+        function createScene() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0c0c1a);
+            scene.fog = new THREE.Fog(0x0c0c1a, 10, 50);
+            
+            // Create camera
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(-25.1283, 3.0082, -1.4318);
+            
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true,
+                alpha: true,
+                logarithmicDepthBuffer: true
+            });
+            
+            const container = document.getElementById('canvas-container');
+            renderer.setSize(container.offsetWidth, container.offsetHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+            
+            // Add grid helper
+            const gridHelper = new THREE.GridHelper(40, 20, 0x444466, 0x222244);
+            gridHelper.position.y = -0.01;
+            scene.add(gridHelper);
+            
+            // Lighting setup
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
+            directionalLight.position.set(20, 30, 20);
+            scene.add(directionalLight);
+            
+            const fillLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            fillLight.position.set(-20, 20, 20);
+            scene.add(fillLight);
+            
+            // Add orbit controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.maxDistance = 150;
+            controls.minDistance = 1;
+            controls.maxPolarAngle = Math.PI / 1.5;
+            
+            // Set initial target
+            controls.target.set(12.8938, 2.2596, -5.5850);
+            controls.update();
+            
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize, false);
+            
+            // Create camera helper
+            createCameraHelper();
+        }
+
+        function createCameraHelper() {
+            // Create a visual representation of the camera
+            const cameraGeometry = new THREE.ConeGeometry(0.1, 0.3, 8);
+            const cameraMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            cameraHelper = new THREE.Mesh(cameraGeometry, cameraMaterial);
+            cameraHelper.position.copy(camera.position);
+            scene.add(cameraHelper);
+            
+            // Create target indicator
+            const targetGeometry = new THREE.SphereGeometry(0.05, 8, 6);
+            const targetMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            window.targetHelper = new THREE.Mesh(targetGeometry, targetMaterial);
+            window.targetHelper.position.copy(controls.target);
+            scene.add(window.targetHelper);
+            
+            // Create line connecting camera to target
+            const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+                camera.position,
+                controls.target
+            ]);
+            const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0.5 });
+            window.targetLine = new THREE.Line(lineGeometry, lineMaterial);
+            scene.add(window.targetLine);
+        }
+
+        async function loadJSONData() {
+            try {
+                const response = await fetch('path.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const jsonData = await response.json();
+                campusPoints = jsonData.locations;
+                predefinedPaths = jsonData.paths;
+                
+                console.log('Loaded locations:', Object.keys(campusPoints));
+                console.log('Loaded paths:', Object.keys(predefinedPaths));
+                
+            } catch (error) {
+                console.error('Error loading JSON data:', error);
+                
+                // Use sample data as fallback
+                campusPoints = {
+                    "Main Entrance": {x: 0, y: 0, z: 0},
+                    "Library": {x: 8, y: 0, z: 5},
+                    "Cafeteria": {x: -6, y: 0, z: 7},
+                    "Administration": {x: 3, y: 0, z: -4},
+                    "Student Center": {x: -5, y: 0, z: -3}
+                };
+                
+                predefinedPaths = {};
+            }
+        }
+
+        async function loadModel() {
+            try {
+                const loader = new THREE.GLTFLoader();
+                const gltf = await new Promise((resolve, reject) => {
+                    loader.load('nwssu.glb', resolve, undefined, reject);
+                });
+                
+                const model = gltf.scene;
+                
+                // Scale to fit
+                const bbox = new THREE.Box3().setFromObject(model);
+                const size = bbox.getSize(new THREE.Vector3());
+                const maxDimension = Math.max(size.x, size.y, size.z);
+                const scale = 50 / maxDimension;
+                model.scale.setScalar(scale);
+                
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                
+                scene.add(model);
+                this.model = model;
+                
+                // Hide loading
+                document.getElementById('loading').classList.add('hidden');
+                
+            } catch (error) {
+                console.error('Error loading model:', error);
+                // Create placeholder
+                createPlaceholderModel();
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+
+        function createPlaceholderModel() {
+            const campusGroup = new THREE.Group();
+            
+            // Create some buildings
+            const building1 = new THREE.Mesh(
+                new THREE.BoxGeometry(4, 3, 4),
+                new THREE.MeshLambertMaterial({ color: 0x8888ff })
+            );
+            building1.position.set(-5, 1.5, 5);
+            campusGroup.add(building1);
+            
+            const building2 = new THREE.Mesh(
+                new THREE.BoxGeometry(5, 4, 3),
+                new THREE.MeshLambertMaterial({ color: 0xff8888 })
+            );
+            building2.position.set(5, 2, 3);
+            campusGroup.add(building2);
+            
+            const building3 = new THREE.Mesh(
+                new THREE.BoxGeometry(6, 5, 5),
+                new THREE.MeshLambertMaterial({ color: 0x88ff88 })
+            );
+            building3.position.set(0, 2.5, -5);
+            campusGroup.add(building3);
+            
+            scene.add(campusGroup);
+            this.model = campusGroup;
+        }
+
+        function initUI() {
+            // Populate location dropdown
+            populateLocationDropdown();
+            
+            // Fly mode controls
+            document.getElementById('speed-slider').addEventListener('input', updateMoveSpeed);
+            document.getElementById('toggle-fly-mode').addEventListener('click', toggleFlyMode);
+            
+            // Location selection controls
+            document.getElementById('go-to-location').addEventListener('click', goToLocation);
+            document.getElementById('look-at-location').addEventListener('click', lookAtLocation);
+            document.getElementById('location-select').addEventListener('change', updateLocationInfo);
+            
+            // Camera position controls
+            document.getElementById('capture-position').addEventListener('click', captureCurrentPosition);
+            document.getElementById('apply-position').addEventListener('click', applyPosition);
+            
+            // Camera target controls
+            document.getElementById('capture-target').addEventListener('click', captureCurrentTarget);
+            document.getElementById('apply-target').addEventListener('click', applyTarget);
+            
+            // Camera management
+            document.getElementById('save-camera').addEventListener('click', saveCamera);
+            document.getElementById('delete-camera').addEventListener('click', deleteCamera);
+            
+            // Export controls
+            document.getElementById('export-cameras').addEventListener('click', exportCameras);
+            document.getElementById('copy-to-clipboard').addEventListener('click', copyToClipboard);
+            
+            // Quick coordinate testing
+            document.getElementById('apply-quick-position').addEventListener('click', applyQuickPosition);
+            document.getElementById('apply-quick-target').addEventListener('click', applyQuickTarget);
+            
+            // Preset camera positions
+            document.getElementById('test-room308-destination').addEventListener('click', testRoom308Destination);
+            document.getElementById('test-room308-camera').addEventListener('click', testRoom308Camera);
+            document.getElementById('test-default-view').addEventListener('click', testDefaultView);
+            
+            // Initialize fly controls (like path-editor)
+            initFlyControls();
+            
+            // Update coordinates display
+            updateCoordinatesDisplay();
+        }
+
+        function populateLocationDropdown() {
+            const select = document.getElementById('location-select');
+            select.innerHTML = '<option value="">Choose a location...</option>';
+            
+            Object.keys(campusPoints).forEach(locationName => {
+                const option = document.createElement('option');
+                option.value = locationName;
+                option.textContent = locationName;
+                select.appendChild(option);
+            });
+        }
+
+        function updateLocationInfo() {
+            const select = document.getElementById('location-select');
+            const locationName = select.value;
+            const infoDiv = document.getElementById('location-info');
+            
+            if (locationName && campusPoints[locationName]) {
+                const location = campusPoints[locationName];
+                infoDiv.innerHTML = `
+                    <strong>${locationName}</strong><br>
+                    Position: (${location.x.toFixed(3)}, ${location.y.toFixed(3)}, ${location.z.toFixed(3)})<br>
+                    ${location.floor ? `Floor: ${location.floor}` : ''}
+                `;
+            } else {
+                infoDiv.textContent = 'No location selected';
+            }
+        }
+
+        function goToLocation() {
+            const select = document.getElementById('location-select');
+            const locationName = select.value;
+            
+            if (!locationName || !campusPoints[locationName]) {
+                alert('Please select a location first');
+                return;
+            }
+            
+            const location = campusPoints[locationName];
+            
+            // Position camera near the location (with some offset for better view)
+            const offset = 3; // Distance from location
+            camera.position.set(
+                location.x + offset,
+                location.y + 2, // Slightly above ground level
+                location.z + offset
+            );
+            
+            // Look at the location
+            controls.target.set(location.x, location.y, location.z);
+            controls.update();
+            
+            updateCameraHelper();
+            updateCoordinatesDisplay();
+        }
+
+        function lookAtLocation() {
+            const select = document.getElementById('location-select');
+            const locationName = select.value;
+            
+            if (!locationName || !campusPoints[locationName]) {
+                alert('Please select a location first');
+                return;
+            }
+            
+            const location = campusPoints[locationName];
+            
+            // Keep current camera position but look at the location
+            controls.target.set(location.x, location.y, location.z);
+            controls.update();
+            
+            updateCameraHelper();
+            updateCoordinatesDisplay();
+        }
+
+        // Initialize fly mode controls (like path-editor)
+        function initFlyControls() {
+            flyControls = new THREE.PointerLockControls(camera, document.body);
+            
+            // Event listeners for fly mode
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+            
+            // Exit fly mode button
+            document.getElementById('exit-fly-mode').addEventListener('click', exitFlyMode);
+            
+            // Start in fly mode by default
+            enterFlyMode();
+        }
+        
+        // Handle key down for fly mode (like path-editor)
+        function onKeyDown(event) {
+            if (!isFlyMode) return;
+            
+            switch (event.code) {
+                case 'ArrowUp':
+                case 'KeyW':
+                    moveForward = true;
+                    break;
+                case 'ArrowLeft':
+                case 'KeyA':
+                    moveLeft = true;
+                    break;
+                case 'ArrowDown':
+                case 'KeyS':
+                    moveBackward = true;
+                    break;
+                case 'ArrowRight':
+                case 'KeyD':
+                    moveRight = true;
+                    break;
+                case 'Space':
+                    moveUp = true;
+                    break;
+                case 'ShiftLeft':
+                case 'ShiftRight':
+                    moveDown = true;
+                    break;
+                // Speed control
+                case 'Equal':
+                case 'NumpadAdd':
+                    flySpeed = Math.min(flySpeed + 0.02, 0.5);
+                    updateSpeedDisplay();
+                    break;
+                case 'Minus':
+                case 'NumpadSubtract':
+                    flySpeed = Math.max(flySpeed - 0.02, 0.01);
+                    updateSpeedDisplay();
+                    break;
+            }
+        }
+        
+        // Handle key up for fly mode (like path-editor)
+        function onKeyUp(event) {
+            if (!isFlyMode) return;
+            
+            switch (event.code) {
+                case 'ArrowUp':
+                case 'KeyW':
+                    moveForward = false;
+                    break;
+                case 'ArrowLeft':
+                case 'KeyA':
+                    moveLeft = false;
+                    break;
+                case 'ArrowDown':
+                case 'KeyS':
+                    moveBackward = false;
+                    break;
+                case 'ArrowRight':
+                case 'KeyD':
+                    moveRight = false;
+                    break;
+                case 'Space':
+                    moveUp = false;
+                    break;
+                case 'ShiftLeft':
+                case 'ShiftRight':
+                    moveDown = false;
+                    break;
+            }
+        }
+        
+        // Update speed display
+        function updateSpeedDisplay() {
+            const speedDisplay = document.getElementById('speed-display');
+            if (speedDisplay) {
+                speedDisplay.textContent = flySpeed.toFixed(2);
+                
+                // Add visual feedback for speed change
+                speedDisplay.style.color = '#00ff00';
+                speedDisplay.style.fontWeight = 'bold';
+                setTimeout(() => {
+                    speedDisplay.style.color = '';
+                    speedDisplay.style.fontWeight = '';
+                }, 500);
+            }
+        }
+
+        function updateMoveSpeed() {
+            const slider = document.getElementById('speed-slider');
+            flySpeed = parseFloat(slider.value);
+            document.getElementById('speed-value').textContent = flySpeed.toFixed(2);
+            updateSpeedDisplay();
+        }
+
+        function toggleFlyMode() {
+            if (isFlyMode) {
+                exitFlyMode();
+            } else {
+                enterFlyMode();
+            }
+        }
+
+        // Enter fly mode (like path-editor)
+        function enterFlyMode() {
+            if (isFlyMode) return;
+            
+            isFlyMode = true;
+            document.getElementById('fly-mode-status').textContent = 'Fly Mode: Active';
+            
+            // Show fly controls UI
+            document.getElementById('fly-controls').classList.add('active');
+            
+            // Enable pointer lock
+            document.body.requestPointerLock = document.body.requestPointerLock || document.body.mozRequestPointerLock || document.body.webkitRequestPointerLock;
+            document.body.requestPointerLock();
+            
+            // Enable fly controls
+            flyControls.lock();
+            flyControls.enabled = true;
+            
+            // Add fly mode class to body
+            document.body.classList.add('fly-mode');
+            
+            // Update speed display
+            updateSpeedDisplay();
+            
+            console.log('🚀 Entered Fly Mode');
+        }
+        
+        // Exit fly mode (like path-editor)
+        function exitFlyMode() {
+            if (!isFlyMode) return;
+            
+            isFlyMode = false;
+            document.getElementById('fly-mode-status').textContent = 'Fly Mode: Inactive';
+            
+            // Hide fly controls UI
+            document.getElementById('fly-controls').classList.remove('active');
+            
+            // Disable pointer lock
+            document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock || document.webkitExitPointerLock;
+            document.exitPointerLock();
+            
+            // Disable fly controls
+            flyControls.unlock();
+            flyControls.enabled = false;
+            
+            // Remove fly mode class from body
+            document.body.classList.remove('fly-mode');
+            
+            // Reset movement flags
+            moveForward = false;
+            moveBackward = false;
+            moveLeft = false;
+            moveRight = false;
+            moveUp = false;
+            moveDown = false;
+            
+            console.log('🛑 Exited Fly Mode');
+        }
+
+        function captureCurrentPosition() {
+            const pos = camera.position;
+            document.getElementById('camera-x').value = pos.x.toFixed(3);
+            document.getElementById('camera-y').value = pos.y.toFixed(3);
+            document.getElementById('camera-z').value = pos.z.toFixed(3);
+            updateCoordinatesDisplay();
+        }
+
+        function applyPosition() {
+            const x = parseFloat(document.getElementById('camera-x').value) || 0;
+            const y = parseFloat(document.getElementById('camera-y').value) || 0;
+            const z = parseFloat(document.getElementById('camera-z').value) || 0;
+            
+            camera.position.set(x, y, z);
+            controls.update();
+            updateCameraHelper();
+            updateCoordinatesDisplay();
+        }
+
+        function captureCurrentTarget() {
+            const target = controls.target;
+            document.getElementById('target-x').value = target.x.toFixed(3);
+            document.getElementById('target-y').value = target.y.toFixed(3);
+            document.getElementById('target-z').value = target.z.toFixed(3);
+            updateCoordinatesDisplay();
+        }
+
+        function applyTarget() {
+            const x = parseFloat(document.getElementById('target-x').value) || 0;
+            const y = parseFloat(document.getElementById('target-y').value) || 0;
+            const z = parseFloat(document.getElementById('target-z').value) || 0;
+            
+            controls.target.set(x, y, z);
+            controls.update();
+            
+            // Make sure camera actually looks at the target
+            camera.lookAt(x, y, z);
+            
+            updateCameraHelper();
+            updateCoordinatesDisplay();
+        }
+
+        function saveCamera() {
+            const name = document.getElementById('camera-name').value.trim();
+            if (!name) {
+                alert('Please enter a camera name');
+                return;
+            }
+            
+            const cameraData = {
+                name: name,
+                position: {
+                    x: camera.position.x,
+                    y: camera.position.y,
+                    z: camera.position.z
+                },
+                target: {
+                    x: controls.target.x,
+                    y: controls.target.y,
+                    z: controls.target.z
+                }
+            };
+            
+            const id = Date.now().toString();
+            savedCameras[id] = cameraData;
+            
+            updateCameraList();
+            document.getElementById('camera-name').value = '';
+            
+            // Auto-select the new camera
+            selectCamera(id);
+        }
+
+        function deleteCamera() {
+            if (!selectedCameraId) {
+                alert('Please select a camera to delete');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to delete this camera?')) {
+                delete savedCameras[selectedCameraId];
+                selectedCameraId = null;
+                updateCameraList();
+            }
+        }
+
+        function updateCameraList() {
+            const list = document.getElementById('camera-list');
+            list.innerHTML = '';
+            
+            Object.keys(savedCameras).forEach(id => {
+                const cameraData = savedCameras[id];
+                const item = document.createElement('div');
+                item.className = 'camera-item';
+                item.dataset.id = id;
+                
+                if (id === selectedCameraId) {
+                    item.classList.add('selected');
+                }
+                
+                item.innerHTML = `
+                    <div>
+                        <div class="camera-name">${cameraData.name}</div>
+                        <div class="camera-coords">
+                            Pos: (${cameraData.position.x.toFixed(1)}, ${cameraData.position.y.toFixed(1)}, ${cameraData.position.z.toFixed(1)})
+                        </div>
+                    </div>
+                `;
+                
+                item.addEventListener('click', () => selectCamera(id));
+                list.appendChild(item);
+            });
+        }
+
+        function selectCamera(id) {
+            selectedCameraId = id;
+            const cameraData = savedCameras[id];
+            
+            // Apply camera position and target
+            camera.position.set(cameraData.position.x, cameraData.position.y, cameraData.position.z);
+            controls.target.set(cameraData.target.x, cameraData.target.y, cameraData.target.z);
+            controls.update();
+            
+            // Update form fields
+            document.getElementById('camera-x').value = cameraData.position.x.toFixed(3);
+            document.getElementById('camera-y').value = cameraData.position.y.toFixed(3);
+            document.getElementById('camera-z').value = cameraData.position.z.toFixed(3);
+            document.getElementById('target-x').value = cameraData.target.x.toFixed(3);
+            document.getElementById('target-y').value = cameraData.target.y.toFixed(3);
+            document.getElementById('target-z').value = cameraData.target.z.toFixed(3);
+            
+            updateCameraHelper();
+            updateCoordinatesDisplay();
+            updateCameraList();
+        }
+
+        function updateCameraHelper() {
+            if (cameraHelper) {
+                cameraHelper.position.copy(camera.position);
+                
+                // Update camera direction
+                const direction = new THREE.Vector3().subVectors(controls.target, camera.position).normalize();
+                cameraHelper.lookAt(camera.position.clone().add(direction));
+            }
+            
+            // Update target helper position
+            if (window.targetHelper) {
+                window.targetHelper.position.copy(controls.target);
+            }
+            
+            // Update target line
+            if (window.targetLine) {
+                const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+                    camera.position,
+                    controls.target
+                ]);
+                window.targetLine.geometry.dispose();
+                window.targetLine.geometry = lineGeometry;
+            }
+        }
+
+        function updateCoordinatesDisplay() {
+            const pos = camera.position;
+            const target = controls.target;
+            const distance = pos.distanceTo(target);
+            
+            document.getElementById('coordinates-display').textContent = 
+                `Position: (${pos.x.toFixed(3)}, ${pos.y.toFixed(3)}, ${pos.z.toFixed(3)}) | Target: (${target.x.toFixed(3)}, ${target.y.toFixed(3)}, ${target.z.toFixed(3)})`;
+            
+            // Update camera visualization
+            document.getElementById('current-position').textContent = 
+                `(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`;
+            document.getElementById('current-target').textContent = 
+                `(${target.x.toFixed(2)}, ${target.y.toFixed(2)}, ${target.z.toFixed(2)})`;
+            document.getElementById('camera-distance').textContent = distance.toFixed(2);
+            
+            // Show/hide camera visualization
+            const viz = document.getElementById('camera-visualization');
+            viz.style.display = 'block';
+        }
+
+        function exportCameras() {
+            const exportData = {};
+            Object.keys(savedCameras).forEach(id => {
+                const cameraData = savedCameras[id];
+                exportData[cameraData.name] = {
+                    position: cameraData.position,
+                    target: cameraData.target
+                };
+            });
+            
+            const jsonString = JSON.stringify(exportData, null, 2);
+            document.getElementById('export-textarea').value = jsonString;
+        }
+
+        function copyToClipboard() {
+            const textarea = document.getElementById('export-textarea');
+            textarea.select();
+            document.execCommand('copy');
+            
+            // Show feedback
+            const button = document.getElementById('copy-to-clipboard');
+            const originalText = button.textContent;
+            button.textContent = 'Copied!';
+            button.style.background = '#28a745';
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.background = '';
+            }, 2000);
+        }
+
+        // Quick coordinate testing functions
+        function applyQuickPosition() {
+            const input = document.getElementById('quick-position').value.trim();
+            if (!input) {
+                alert('Please enter coordinates in format: x,y,z');
+                return;
+            }
+            
+            const coords = input.split(',').map(coord => parseFloat(coord.trim()));
+            if (coords.length !== 3 || coords.some(isNaN)) {
+                alert('Invalid format. Please use: x,y,z (e.g., -17.649, 1.120, 0.754)');
+                return;
+            }
+            
+            // Apply the coordinates
+            camera.position.set(coords[0], coords[1], coords[2]);
+            controls.update();
+            updateCameraHelper();
+            updateCoordinatesDisplay();
+            
+            // Update the individual input fields
+            document.getElementById('camera-x').value = coords[0].toFixed(3);
+            document.getElementById('camera-y').value = coords[1].toFixed(3);
+            document.getElementById('camera-z').value = coords[2].toFixed(3);
+            
+            console.log(`Applied quick position: (${coords[0]}, ${coords[1]}, ${coords[2]})`);
+        }
+
+        function applyQuickTarget() {
+            const input = document.getElementById('quick-target').value.trim();
+            if (!input) {
+                alert('Please enter target coordinates in format: x,y,z');
+                return;
+            }
+            
+            const coords = input.split(',').map(coord => parseFloat(coord.trim()));
+            if (coords.length !== 3 || coords.some(isNaN)) {
+                alert('Invalid format. Please use: x,y,z (e.g., 12.893, 2.259, -5.585)');
+                return;
+            }
+            
+            // Apply the target coordinates
+            controls.target.set(coords[0], coords[1], coords[2]);
+            controls.update();
+            
+            // Make sure camera actually looks at the target
+            camera.lookAt(coords[0], coords[1], coords[2]);
+            
+            updateCameraHelper();
+            updateCoordinatesDisplay();
+            
+            // Update the individual input fields
+            document.getElementById('target-x').value = coords[0].toFixed(3);
+            document.getElementById('target-y').value = coords[1].toFixed(3);
+            document.getElementById('target-z').value = coords[2].toFixed(3);
+            
+            console.log(`Applied quick target: (${coords[0]}, ${coords[1]}, ${coords[2]})`);
+        }
+
+        // Preset camera position functions
+        function testRoom308Destination() {
+            // Use room308 destination coordinates from your JSON
+            const position = { x: -17.649854315719825, y: 1.120925588523943, z: 0.7541154783184463 };
+            const target = { x: 12.8938, y: 2.2596, z: -5.585 };
+            
+            camera.position.set(position.x, position.y, position.z);
+            controls.target.set(target.x, target.y, target.z);
+            
+            // Make sure camera actually looks at the target
+            camera.lookAt(target.x, target.y, target.z);
+            
+            controls.update();
+            updateCameraHelper();
+            updateCoordinatesDisplay();
+            
+            // Update input fields
+            document.getElementById('camera-x').value = position.x.toFixed(3);
+            document.getElementById('camera-y').value = position.y.toFixed(3);
+            document.getElementById('camera-z').value = position.z.toFixed(3);
+            document.getElementById('target-x').value = target.x.toFixed(3);
+            document.getElementById('target-y').value = target.y.toFixed(3);
+            document.getElementById('target-z').value = target.z.toFixed(3);
+            
+            console.log('Applied room308 destination camera position');
+        }
+
+        function testRoom308Camera() {
+            // Use room308 camera coordinates (if available in JSON)
+            // For now, using a different position to test
+            const position = { x: -17.644, y: 1.0101, z: 0.8687 };
+            const target = { x: -17.644, y: 1.0101, z: 0.8687 };
+            
+            camera.position.set(position.x, position.y, position.z);
+            controls.target.set(target.x, target.y, target.z);
+            
+            // Make sure camera actually looks at the target
+            camera.lookAt(target.x, target.y, target.z);
+            
+            controls.update();
+            updateCameraHelper();
+            updateCoordinatesDisplay();
+            
+            // Update input fields
+            document.getElementById('camera-x').value = position.x.toFixed(3);
+            document.getElementById('camera-y').value = position.y.toFixed(3);
+            document.getElementById('camera-z').value = position.z.toFixed(3);
+            document.getElementById('target-x').value = target.x.toFixed(3);
+            document.getElementById('target-y').value = target.y.toFixed(3);
+            document.getElementById('target-z').value = target.z.toFixed(3);
+            
+            console.log('Applied room308 camera position');
+        }
+
+        function testDefaultView() {
+            // Reset to default view
+            camera.position.set(-25.1283, 3.0082, -1.4318);
+            controls.target.set(12.8938, 2.2596, -5.5850);
+            
+            // Make sure camera actually looks at the target
+            camera.lookAt(12.8938, 2.2596, -5.5850);
+            
+            controls.update();
+            updateCameraHelper();
+            updateCoordinatesDisplay();
+            
+            // Update input fields
+            document.getElementById('camera-x').value = '-25.128';
+            document.getElementById('camera-y').value = '3.008';
+            document.getElementById('camera-z').value = '-1.432';
+            document.getElementById('target-x').value = '12.894';
+            document.getElementById('target-y').value = '2.260';
+            document.getElementById('target-z').value = '-5.585';
+            
+            console.log('Applied default view');
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.offsetWidth / container.offsetHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.offsetWidth, container.offsetHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Update fly mode movement (like path-editor)
+            if (isFlyMode && flyControls.enabled) {
+                const delta = flySpeed;
+                
+                if (moveForward) {
+                    flyControls.moveForward(delta);
+                }
+                if (moveBackward) {
+                    flyControls.moveForward(-delta);
+                }
+                if (moveLeft) {
+                    flyControls.moveRight(-delta);
+                }
+                if (moveRight) {
+                    flyControls.moveRight(delta);
+                }
+                if (moveUp) {
+                    camera.position.y += delta;
+                }
+                if (moveDown) {
+                    camera.position.y -= delta;
+                }
+            }
+            
+            // Update controls only when not in fly mode
+            if (!isFlyMode) {
+                controls.update();
+            }
+            
+            // Update camera helper
+            updateCameraHelper();
+            updateCoordinatesDisplay();
+            
+            // Render
+            renderer.render(scene, camera);
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
