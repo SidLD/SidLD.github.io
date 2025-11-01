@@ -147,7 +147,7 @@
 
         .header-controls {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             gap: 0.8rem;
             flex: 1;
             align-items: center;
@@ -520,6 +520,35 @@
             display: grid;
         }
 
+        .skip-floor-btn {
+            background: rgba(255, 140, 0, 0.9);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            padding: 0.5rem 0.8rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 140, 0, 0.3);
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        .skip-floor-btn:hover {
+            background: rgba(255, 165, 0, 0.9);
+            transform: translateY(-2px);
+        }
+
+        .skip-floor-btn:disabled {
+            background: rgba(255, 140, 0, 0.5);
+            cursor: not-allowed;
+            transform: none;
+        }
+
 
         @media (max-width: 768px) {
             header {
@@ -634,6 +663,12 @@
                 
                 <button id="start-path" class="generate-path-btn" disabled>Start</button>
                 
+                <button id="pause-play-btn" class="generate-path-btn" style="display: none;">
+                    <span id="pause-play-icon">⏸</span>
+                </button>
+                
+                <button id="skip-floor-btn" class="skip-floor-btn" style="display: none;">Skip Floor</button>
+                
                 <div class="speed-control">
                     <label for="speed-slider">Speed</label>
                     <input type="range" id="speed-slider" class="speed-slider" min="0.1" max="100" step="0.5" value="1">
@@ -681,6 +716,7 @@
         let selectedLocationB = null;
         let currentPath = null;
         let isWalking = false;
+        let isPaused = false;
         let walkingProgress = 0;
         let cameraFollowing = false;
         let isFlyMode = true;
@@ -691,6 +727,9 @@
         let personWalkAction = null; // Walking animation action
         let currentFloor = null; // Current floor number
         let isInStairs = false; // Whether person is currently in stairs
+        let lastStairEntryIndex = -1; // Track where we entered stairs to prevent multiple skips
+        let pathSegments = []; // Store path segments for floor skipping
+        let currentSegmentIndex = 0; // Current segment index for floor skipping
         
         // Camera positions for different stair areas
         const CAMERA_POSITIONS = {
@@ -1263,7 +1302,12 @@
         
         // Initialize basic keyboard controls
         function initKeyboardControls() {
-            // No keyboard controls needed - just orbit controls
+            // Add keyboard shortcut for skipping floors
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 's' || event.key === 'S') {
+                    skipCurrentFloor();
+                }
+            });
         }
             
             // No additional touch/mouse controls - just use orbit control
@@ -1470,6 +1514,8 @@
             
             // Button events
             document.getElementById('start-path').addEventListener('click', startPath);
+            document.getElementById('pause-play-btn').addEventListener('click', togglePausePlay);
+            document.getElementById('skip-floor-btn').addEventListener('click', skipCurrentFloor);
             
             // Speed control events
             const speedSlider = document.getElementById('speed-slider');
@@ -1591,6 +1637,129 @@
             generateBtn.disabled = !canGenerate;
         }
         
+        // Function to break path into segments based on floor changes
+        function computePathSegments(path) {
+            if (!path || path.length === 0) return [];
+            
+            const segments = [];
+            let currentSegment = {
+                startIndex: 0,
+                startFloor: path[0].floor || 1,
+                waypoints: [path[0]]
+            };
+            
+            for (let i = 1; i < path.length; i++) {
+                const currentFloor = path[i].floor || 1;
+                const prevFloor = path[i-1].floor || 1;
+                
+                // If floor changes (any floor change, not just by 1)
+                if (currentFloor !== prevFloor) {
+                    // End current segment at the last waypoint before floor change
+                    currentSegment.endIndex = i - 1;
+                    currentSegment.endFloor = prevFloor;
+                    segments.push(currentSegment);
+                    
+                    // Start new segment at the first waypoint of new floor
+                    currentSegment = {
+                        startIndex: i,
+                        startFloor: currentFloor,
+                        waypoints: [path[i]]
+                    };
+                } else {
+                    // Continue current segment
+                    currentSegment.waypoints.push(path[i]);
+                }
+            }
+            
+            // Add the last segment
+            currentSegment.endIndex = path.length - 1;
+            currentSegment.endFloor = path[path.length - 1].floor || 1;
+            segments.push(currentSegment);
+            
+            // Log detailed segment information
+            console.log('=== PATH SEGMENTS COMPUTED ===');
+            segments.forEach((seg, idx) => {
+                console.log(`Segment ${idx}:`, {
+                    floor: seg.startFloor,
+                    range: `[${seg.startIndex} - ${seg.endIndex}]`,
+                    waypoints: seg.waypoints.length,
+                    startPos: `(${path[seg.startIndex].x.toFixed(2)}, ${path[seg.startIndex].y.toFixed(2)}, ${path[seg.startIndex].z.toFixed(2)})`,
+                    endPos: `(${path[seg.endIndex].x.toFixed(2)}, ${path[seg.endIndex].y.toFixed(2)}, ${path[seg.endIndex].z.toFixed(2)})`
+                });
+            });
+            console.log(`Total segments: ${segments.length}`);
+            console.log('=== END PATH SEGMENTS ===');
+            
+            return segments;
+        }
+        
+        // Function to skip to the next floor segment
+        function skipCurrentFloor() {
+            if (!isWalking || !pathSegments || pathSegments.length === 0) return;
+            
+            // Find current segment based on the actual currentPath index
+            const currentIndex = Math.floor(walkingProgress * (currentPath.length - 1));
+            let currentSegmentIdx = -1;
+            
+            // Find which segment we're currently in
+            for (let i = 0; i < pathSegments.length; i++) {
+                if (currentIndex >= pathSegments[i].startIndex && currentIndex <= pathSegments[i].endIndex) {
+                    currentSegmentIdx = i;
+                    break;
+                }
+            }
+            
+            // If we couldn't find the segment, default to the first one
+            if (currentSegmentIdx === -1) {
+                currentSegmentIdx = 0;
+            }
+            
+            console.log(`Current index: ${currentIndex}, Current segment: ${currentSegmentIdx}/${pathSegments.length}`);
+            console.log(`Current segment range: ${pathSegments[currentSegmentIdx].startIndex} to ${pathSegments[currentSegmentIdx].endIndex}`);
+            
+            // If we're not on the last segment, skip to the next one
+            if (currentSegmentIdx < pathSegments.length - 1) {
+                const nextSegment = pathSegments[currentSegmentIdx + 1];
+                
+                // Skip to the start of the next segment (after floor transition)
+                const skipIndex = nextSegment.startIndex;
+                
+                // Ensure skipIndex is within bounds
+                if (skipIndex < currentPath.length) {
+                    // Calculate the progress value for skipping to the next segment
+                    // Add a small offset to ensure we're clearly in the next segment
+                    walkingProgress = skipIndex / (currentPath.length - 1);
+                    
+                    console.log(`Skipped from floor ${pathSegments[currentSegmentIdx].startFloor} to floor ${nextSegment.startFloor}`);
+                    console.log(`New progress: ${walkingProgress}, Target index: ${skipIndex}/${currentPath.length - 1}`);
+                    
+                    // Update person position immediately
+                    if (personModel && currentPath && currentPath.length > skipIndex) {
+                        const newPosition = new THREE.Vector3(
+                            currentPath[skipIndex].x,
+                            currentPath[skipIndex].y,
+                            currentPath[skipIndex].z
+                        );
+                        personModel.position.copy(newPosition);
+                        
+                        // Update direction for person model
+                        if (skipIndex + 1 < currentPath.length) {
+                            const nextPos = currentPath[skipIndex + 1];
+                            const lookAtTarget = new THREE.Vector3(nextPos.x, nextPos.y, nextPos.z);
+                            personModel.lookAt(lookAtTarget);
+                        }
+                        
+                        // Update camera to follow the new position
+                        updateCameraFollow();
+                        
+                        // Update floor label immediately
+                        updateFloorLabel();
+                    }
+                }
+            } else {
+                console.log('Already on the last floor segment');
+            }
+        }
         
         
         // Create person model using GLB file
@@ -1789,6 +1958,10 @@
                 // Store waypoint data for camera and floor detection
                 currentPath = path; // Store the full waypoint data, not just coordinates
                 
+                // Compute path segments for floor skipping
+                pathSegments = computePathSegments(path);
+                currentSegmentIndex = 0;
+                
                 // Debug: Log loaded waypoint data
                 console.log('=== LOADED WAYPOINT DATA ===');
                 console.log(`Path length: ${path.length} waypoints`);
@@ -1818,16 +1991,45 @@
                     }
                 }
                 
-                // Use straight line segments instead of curved tubes
-                const geometry = new THREE.BufferGeometry().setFromPoints(pathCoordinates);
-                const material = new THREE.LineBasicMaterial({ 
+                // Create thick straight line segments using cylinders
+                const material = new THREE.MeshBasicMaterial({ 
                     color: 0x00ff00,
-                    linewidth: 5,
                     transparent: true,
                     opacity: 0.9
                 });
                 
-                pathLine = new THREE.Line(geometry, material);
+                const pathGroup = new THREE.Group();
+                
+                // Create a straight cylinder segment between each pair of consecutive points
+                for (let i = 0; i < pathCoordinates.length - 1; i++) {
+                    const start = pathCoordinates[i];
+                    const end = pathCoordinates[i + 1];
+                    
+                    // Calculate distance and direction
+                    const direction = new THREE.Vector3().subVectors(end, start);
+                    const distance = direction.length();
+                    const midpoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+                    
+                    // Create a cylinder for the line segment
+                    const radius = 0.01;
+                    const segmentGeometry = new THREE.CylinderGeometry(radius, radius, distance, 8);
+                    const segment = new THREE.Mesh(segmentGeometry, material);
+                    
+                    // Position the cylinder at the midpoint
+                    segment.position.copy(midpoint);
+                    
+                    // Rotate the cylinder to point from start to end
+                    const axis = new THREE.Vector3(0, 1, 0);
+                    const quaternion = new THREE.Quaternion().setFromUnitVectors(
+                        axis,
+                        direction.normalize()
+                    );
+                    segment.quaternion.copy(quaternion);
+                    
+                    pathGroup.add(segment);
+                }
+                
+                pathLine = pathGroup;
                 scene.add(pathLine);
                 
                 // Path markers removed - keeping only the path line
@@ -2033,7 +2235,22 @@
             // Wait 0.5 seconds before starting to walk (reduced from 2 seconds)
             setTimeout(() => {
                 isWalking = true;
+                isPaused = false;
                 walkingProgress = 0;
+                lastStairEntryIndex = -1; // Reset stair tracking for new path
+                
+                // Show pause button
+                const pausePlayBtn = document.getElementById('pause-play-btn');
+                if (pausePlayBtn) {
+                    pausePlayBtn.style.display = 'block';
+                    document.getElementById('pause-play-icon').textContent = '⏸';
+                }
+                
+                // Show skip button if path has multiple floors
+                const skipBtn = document.getElementById('skip-floor-btn');
+                if (skipBtn && pathSegments.length > 1) {
+                    skipBtn.style.display = 'block';
+                }
                 
                 // Start walking animation
                 if (personWalkAction) {
@@ -2043,10 +2260,67 @@
             }, 500);
         }
         
+        function pauseWalking() {
+            if (isWalking && !isPaused) {
+                isPaused = true;
+                
+                // Pause walking animation
+                if (personWalkAction) {
+                    personWalkAction.paused = true;
+                    console.log('Paused walking animation');
+                }
+                
+                // Update button icon
+                const pauseIcon = document.getElementById('pause-play-icon');
+                if (pauseIcon) {
+                    pauseIcon.textContent = '▶';
+                }
+            }
+        }
+        
+        function resumeWalking() {
+            if (isWalking && isPaused) {
+                isPaused = false;
+                
+                // Resume walking animation
+                if (personWalkAction) {
+                    personWalkAction.paused = false;
+                    console.log('Resumed walking animation');
+                }
+                
+                // Update button icon
+                const pauseIcon = document.getElementById('pause-play-icon');
+                if (pauseIcon) {
+                    pauseIcon.textContent = '⏸';
+                }
+            }
+        }
+        
+        function togglePausePlay() {
+            if (isPaused) {
+                resumeWalking();
+            } else {
+                pauseWalking();
+            }
+        }
+        
         function clearPath() {
             isWalking = false;
+            isPaused = false;
             walkingProgress = 0;
             cameraFollowing = false;
+            
+            // Hide pause/play button
+            const pausePlayBtn = document.getElementById('pause-play-btn');
+            if (pausePlayBtn) {
+                pausePlayBtn.style.display = 'none';
+            }
+            
+            // Hide skip button
+            const skipBtn = document.getElementById('skip-floor-btn');
+            if (skipBtn) {
+                skipBtn.style.display = 'none';
+            }
             
             // Stop walking animation
             if (personWalkAction) {
@@ -2078,6 +2352,8 @@
             personModel.visible = false;
             
             currentPath = null;
+            pathSegments = [];
+            currentSegmentIndex = 0;
         }
 
       // Load model with optimized loading (but don't add to scene)
@@ -2219,7 +2495,7 @@
         }
         
         function updateCameraFollow() {
-            if (!cameraFollowing || !isWalking) return;
+            if (!cameraFollowing || !isWalking || isPaused) return;
             
             // Get current waypoint info
             const waypointInfo = getCurrentWaypointInfo();
@@ -2351,8 +2627,8 @@
             
             const delta = 0.0167; // Approximate 60fps
             
-            // Update animation mixer if it exists
-            if (personMixer) {
+            // Update animation mixer if it exists and not paused
+            if (personMixer && !isPaused) {
                 personMixer.update(delta);
             }
             
@@ -2360,7 +2636,7 @@
             updateCameraRotation(delta);
             
             // Animate person walking
-            if (isWalking && currentPath && currentPath.length > 1) {
+            if (isWalking && !isPaused && currentPath && currentPath.length > 1) {
                 // Calculate constant speed based on time, not path length
                 // This ensures consistent movement speed regardless of path length
                 const baseSpeedPerSecond = 0.5; // Base speed: 0.5 units per second
@@ -2402,7 +2678,20 @@
                 if (walkingProgress >= 1) {
                     walkingProgress = 1;
                     isWalking = false;
+                    isPaused = false;
                     cameraFollowing = false;
+                    
+                    // Hide pause/play button
+                    const pausePlayBtn = document.getElementById('pause-play-btn');
+                    if (pausePlayBtn) {
+                        pausePlayBtn.style.display = 'none';
+                    }
+                    
+                    // Hide skip button
+                    const skipBtn = document.getElementById('skip-floor-btn');
+                    if (skipBtn) {
+                        skipBtn.style.display = 'none';
+                    }
                     
                     // Stop walking animation when destination is reached
                     if (personWalkAction) {
