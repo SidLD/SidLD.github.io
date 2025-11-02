@@ -940,6 +940,11 @@ body.fly-mode .crosshair {
                                 <label for="waypoint-camera" style="font-size: 0.8rem; color: #00dbde;">Use Custom Camera</label>
                             </div>
                             
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <input type="checkbox" id="skip-stairs" style="margin-right: 8px;">
+                                <label for="skip-stairs" style="font-size: 0.8rem; color: #00dbde;">Skip Stairs (Skip stair waypoints when recording)</label>
+                            </div>
+                            
                             <div id="camera-settings" style="display: none; margin-top: 8px;">
                                 <div class="control-buttons" style="margin-bottom: 8px;">
                                     <button id="capture-camera" class="btn" style="flex: 1; font-size: 0.8rem;">Capture Current Camera</button>
@@ -1005,6 +1010,10 @@ body.fly-mode .crosshair {
                                 <span class="status-value" id="camera-status">Follow Person</span>
                             </div>
                             <div class="status-item">
+                                <span class="status-label">Skip Stairs:</span>
+                                <span class="status-value" id="skip-stairs-status">Disabled</span>
+                            </div>
+                            <div class="status-item">
                                 <span class="status-label">Speed:</span>
                                 <span class="status-value" id="speed-status">0.10</span>
                             </div>
@@ -1064,6 +1073,7 @@ body.fly-mode .crosshair {
         let currentWaypointFloor = 1;
         let currentWaypointIsStair = false;
         let currentWaypointCamera = null;
+        let skipStairs = false; // Skip stair waypoints when recording
         
         // Fly mode variables
         let flyControls = null;
@@ -1930,6 +1940,13 @@ body.fly-mode .crosshair {
                 updateWaypointStatus();
             });
             
+            // Skip stairs checkbox
+            document.getElementById('skip-stairs').addEventListener('change', function() {
+                skipStairs = this.checked;
+                updateWaypointStatus();
+                console.log(`Skip stairs: ${skipStairs ? 'enabled' : 'disabled'}`);
+            });
+            
             // Capture camera button
             document.getElementById('capture-camera').addEventListener('click', captureCurrentCamera);
             
@@ -1992,6 +2009,8 @@ body.fly-mode .crosshair {
             } else {
                 document.getElementById('camera-status').textContent = 'Follow Person';
             }
+            
+            document.getElementById('skip-stairs-status').textContent = skipStairs ? 'Enabled' : 'Disabled';
         }
         
         // Capture current camera position and target
@@ -2241,6 +2260,12 @@ body.fly-mode .crosshair {
         }
 
         function addPathPoint(point) {
+            // Skip adding point if skip stairs is enabled and current waypoint is marked as stair
+            if (skipStairs && currentWaypointIsStair) {
+                console.log(`⏭️ Skipped stair waypoint at Floor ${currentWaypointFloor}`);
+                return;
+            }
+            
             const pathPoint = {
                 x: parseFloat(point.x.toFixed(4)),
                 y: parseFloat(point.y.toFixed(4)),
@@ -2358,10 +2383,12 @@ body.fly-mode .crosshair {
             document.getElementById('waypoint-floor').value = '1';
             document.getElementById('waypoint-stair').checked = false;
             document.getElementById('waypoint-camera').checked = false;
+            document.getElementById('skip-stairs').checked = false;
             document.getElementById('camera-settings').style.display = 'none';
             currentWaypointFloor = 1;
             currentWaypointIsStair = false;
             currentWaypointCamera = null;
+            skipStairs = false;
             updateWaypointStatus();
             
             // Update loaded path count
