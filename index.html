@@ -468,10 +468,10 @@
 
         .floor-label {
             position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%) translateY(-20px);
-            max-width: calc(100vw - 40px); /* Ensure it doesn't exceed viewport width */
+            top: 140px;
+            left: 20px;
+            transform: translateY(-20px);
+            max-width: calc(50vw - 40px); /* Ensure it doesn't exceed half viewport width */
             background: rgba(65, 105, 225, 0.9);
             color: white;
             padding: 8px 16px;
@@ -492,7 +492,7 @@
         }
 
         .floor-label.visible {
-            transform: translateX(-50%) translateY(0);
+            transform: translateY(0);
             opacity: 1;
         }
 
@@ -506,6 +506,43 @@
             background: rgba(0, 255, 0, 0.9);
             border-color: rgba(0, 255, 0, 0.3);
             box-shadow: 0 4px 15px rgba(0, 255, 0, 0.3);
+        }
+
+        .direction-label {
+            position: fixed;
+            top: 140px;
+            right: 20px;
+            transform: translateY(-20px);
+            max-width: calc(50vw - 40px);
+            background: rgba(255, 87, 34, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 15px rgba(255, 87, 34, 0.3);
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            word-wrap: break-word;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: right;
+        }
+
+        .direction-label.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .direction-label.next-stair {
+            background: rgba(255, 193, 7, 0.9);
+            border-color: rgba(255, 193, 7, 0.3);
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
         }
 
         .department-locations {
@@ -572,21 +609,35 @@
             }
             
             .department-locations {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
                 gap: 0.5rem;
             }
             
             .floor-label {
-                bottom: 10px; /* Position at bottom on mobile */
+                top: 170px; /* Position well below header on mobile */
                 left: 10px;
-                right: 10px; /* Use full width on mobile */
-                transform: translateX(0) translateY(-20px); /* No horizontal centering on mobile */
-                max-width: none;
+                right: auto;
+                transform: translateY(-20px);
+                max-width: calc(100vw - 20px);
                 font-size: 0.8rem; /* Smaller font on mobile */
             }
             
             .floor-label.visible {
-                transform: translateX(0) translateY(0); /* Mobile visible state */
+                transform: translateY(0);
+            }
+
+            .direction-label {
+                top: 220px; /* Position below floor label on mobile */
+                right: 10px;
+                left: auto;
+                transform: translateY(-20px);
+                max-width: calc(100vw - 20px);
+                font-size: 0.8rem;
+                text-align: right;
+            }
+
+            .direction-label.visible {
+                transform: translateY(0);
             }
             
             .logo h1 {
@@ -601,7 +652,7 @@
     <div id="home-screen">
         <div class="logo">
             <img src="logo.jpeg" alt="Pathfinder Logo">
-            <h1>Map Path Finder</h1>
+            <h1>Path Finder</h1>
             <p>Explore your campus in 3D</p>
         </div>
         
@@ -667,7 +718,7 @@
                     <span id="pause-play-icon">⏸</span>
                 </button>
                 
-                <button id="skip-floor-btn" class="skip-floor-btn" style="display: none;">Skip Floor</button>
+                <!-- <button id="skip-floor-btn" class="skip-floor-btn" style="display: none;">Skip Floor</button> -->
                 
                 <div class="speed-control">
                     <label for="speed-slider">Speed</label>
@@ -678,7 +729,7 @@
             </div>
             
             <div class="header-title">
-                <h1>Map Path Finder</h1>
+                <h1>Path Finder</h1>
             </div>
         </header>
         
@@ -693,8 +744,11 @@
             </div>
         </div>
         
-        <!-- Floor Label -->
+        <!-- Floor Label (Left Corner - Current Info) -->
         <div class="floor-label" id="floor-label"></div>
+        
+        <!-- Direction Label (Right Corner - Left/Right Turn Info) -->
+        <div class="direction-label" id="direction-label"></div>
         
     </div>
 
@@ -728,8 +782,10 @@
         let currentFloor = null; // Current floor number
         let isInStairs = false; // Whether person is currently in stairs
         let lastStairEntryIndex = -1; // Track where we entered stairs to prevent multiple skips
+        let isSkippingStairs = false; // Track if we're currently skipping stairs
         let pathSegments = []; // Store path segments for floor skipping
         let currentSegmentIndex = 0; // Current segment index for floor skipping
+        let lastFrameTime = null; // Track last frame time for accurate delta calculation
         
         // Camera positions for different stair areas
         const CAMERA_POSITIONS = {
@@ -967,6 +1023,85 @@
             
             return { direction: 'unknown', angle: 0 };
         }
+
+        // Function to detect turn direction (left/right) at waypoints
+        function getTurnDirection() {
+            if (!currentPath || currentPath.length < 3) {
+                return null;
+            }
+            
+            const totalLength = currentPath.length - 1;
+            const scaledProgress = walkingProgress * totalLength;
+            const currentIndex = Math.floor(scaledProgress);
+            
+            // Need at least previous, current, and next waypoint to detect turn
+            if (currentIndex > 0 && currentIndex < currentPath.length - 1) {
+                const prev = new THREE.Vector3(currentPath[currentIndex - 1].x, currentPath[currentIndex - 1].y, currentPath[currentIndex - 1].z);
+                const current = new THREE.Vector3(currentPath[currentIndex].x, currentPath[currentIndex].y, currentPath[currentIndex].z);
+                const next = new THREE.Vector3(currentPath[currentIndex + 1].x, currentPath[currentIndex + 1].y, currentPath[currentIndex + 1].z);
+                
+                // Calculate direction vectors
+                const direction1 = new THREE.Vector3().subVectors(current, prev).normalize();
+                const direction2 = new THREE.Vector3().subVectors(next, current).normalize();
+                
+                // Calculate cross product to determine turn direction
+                // Cross product z-component tells us if it's left or right turn
+                const cross = new THREE.Vector3().crossVectors(direction1, direction2);
+                
+                // Threshold for considering it a turn (not just straight)
+                const turnThreshold = 0.15; // Adjust this to control sensitivity
+                
+                if (Math.abs(cross.y) > turnThreshold) {
+                    // Positive y means left turn, negative means right turn
+                    if (cross.y > 0) {
+                        return 'left';
+                    } else {
+                        return 'right';
+                    }
+                }
+            }
+            
+            return null; // No significant turn detected
+        }
+
+        // Function to detect turn direction from current → next → nextNext (for stairs)
+        function getNextTurnDirection() {
+            if (!currentPath || currentPath.length < 3) {
+                return null;
+            }
+            
+            const totalLength = currentPath.length - 1;
+            const scaledProgress = walkingProgress * totalLength;
+            const currentIndex = Math.floor(scaledProgress);
+            
+            // Need current, next, and nextNext waypoint to detect turn direction
+            if (currentIndex < currentPath.length - 2) {
+                const current = new THREE.Vector3(currentPath[currentIndex].x, currentPath[currentIndex].y, currentPath[currentIndex].z);
+                const next = new THREE.Vector3(currentPath[currentIndex + 1].x, currentPath[currentIndex + 1].y, currentPath[currentIndex + 1].z);
+                const nextNext = new THREE.Vector3(currentPath[currentIndex + 2].x, currentPath[currentIndex + 2].y, currentPath[currentIndex + 2].z);
+                
+                // Calculate direction vectors: current → next, next → nextNext
+                const direction1 = new THREE.Vector3().subVectors(next, current).normalize();
+                const direction2 = new THREE.Vector3().subVectors(nextNext, next).normalize();
+                
+                // Calculate cross product to determine turn direction
+                const cross = new THREE.Vector3().crossVectors(direction1, direction2);
+                
+                // Threshold for considering it a turn (not just straight)
+                const turnThreshold = 0.15;
+                
+                if (Math.abs(cross.y) > turnThreshold) {
+                    // Positive y means left turn, negative means right turn
+                    if (cross.y > 0) {
+                        return 'left';
+                    } else {
+                        return 'right';
+                    }
+                }
+            }
+            
+            return null; // No significant turn detected
+        }
         
         // Function to get current location name
         function getCurrentLocationName(position) {
@@ -1010,7 +1145,7 @@
                 const waypoint = currentPath[currentIndex];
                 
                 // Check if this waypoint has enhanced data (floor, isStair, camera)
-                // This ensures we use the structured data from path.json instead of fallback detection
+                // If it does, use those properties
                 if (waypoint.floor !== undefined || waypoint.isStair !== undefined || waypoint.camera !== undefined) {
                     const result = {
                         index: currentIndex,
@@ -1030,19 +1165,58 @@
                     }
                     
                     return result;
+                } else {
+                    // Waypoint doesn't have floor/isStair/camera - use location's floor from CAMPUS_POINTS
+                    const waypointPosition = new THREE.Vector3(waypoint.x, waypoint.y, waypoint.z);
+                    const locationFloor = getFloorFromLocations(waypointPosition);
+                    
+                    const result = {
+                        index: currentIndex,
+                        waypoint: waypoint,
+                        floor: locationFloor || undefined, // Use location floor if found, otherwise undefined
+                        isStair: false, // Default to false when not specified
+                        camera: null // No camera when not specified
+                    };
+                    
+                    // Only log when waypoint changes to prevent loop
+                    if (result.index !== getCurrentWaypointInfo.lastIndex) {
+                        console.log(`Path: Using waypoint ${currentIndex} - Floor from location: ${result.floor || 'unknown'}, Stair: ${result.isStair}, Camera: ${!!result.camera}`);
+                        getCurrentWaypointInfo.lastIndex = result.index;
+                    }
+                    
+                    return result;
                 }
             }
             
             return null;
         }
         
+        // Helper function to get floor for a waypoint - uses waypoint.floor if available, otherwise location floor
+        function getWaypointFloor(waypoint) {
+            if (!waypoint) return undefined;
+            // If waypoint has floor property, use it
+            if (waypoint.floor !== undefined) {
+                return waypoint.floor;
+            }
+            // Otherwise, try to get floor from location
+            if (waypoint.x !== undefined && waypoint.y !== undefined && waypoint.z !== undefined) {
+                const waypointPosition = new THREE.Vector3(waypoint.x, waypoint.y, waypoint.z);
+                return getFloorFromLocations(waypointPosition);
+            }
+            return undefined;
+        }
+        
         // Function to update floor label display with enhanced waypoint information
         function updateFloorLabel() {
             const floorLabel = document.getElementById('floor-label');
-            if (!floorLabel || !personModel || !personModel.visible) return;
+            const directionLabel = document.getElementById('direction-label');
+            
+            if (!floorLabel || !directionLabel || !personModel || !personModel.visible) return;
             
             // Get current waypoint info if we're following a path
             const waypointInfo = getCurrentWaypointInfo();
+            const turnDirection = getTurnDirection();
+            const nextTurnDirection = getNextTurnDirection();
             
             const movementInfo = getMovementDirection();
             const currentLocation = getCurrentLocationName(personModel.position);
@@ -1050,55 +1224,123 @@
             // Update previous position for next frame
             previousPosition = personModel.position.clone();
             
-            
-            // SINGLE LOGIC: Only update if waypoint info available
+            // Always show labels when walking, keep them visible
             if (waypointInfo && isWalking) {
+                const currentIndex = waypointInfo.index;
+                const totalSteps = currentPath.length;
                 
-                let labelText = '';
-                let labelClass = '';
-                
-                // SINGLE LOGIC: Show current step and next step
-                if (waypointInfo && isWalking) {
-                    const currentStep = waypointInfo.index + 1; // Convert to 1-based indexing
-                    const totalSteps = currentPath.length;
-                    const nextStep = currentStep < totalSteps ? currentStep + 1 : null;
-                    
-                    // Get direction from person movement
-                    const directionText = movementInfo.direction !== 'unknown' ? ` - Going ${movementInfo.direction}` : '';
-                    
-                    // Format: "Step X/Y - Floor Z - Going [direction] - Stair" or "Step X/Y - Floor Z - Going [direction]"
-                    let stepText = `Current `;
-                    let floorText = ` - Floor ${waypointInfo.floor}`;
-                    let stairText = waypointInfo.isStair ? ' - Stair' : '';
-                    
-                    labelText = `${stepText}${floorText}${directionText}${stairText}`;
-                    labelClass = waypointInfo.isStair ? 'stair' : '';
-                    
-                    // Add next step info if available
-                    if (nextStep && nextStep <= totalSteps) {
-                        const nextWaypoint = currentPath[nextStep - 1]; // Convert back to 0-based indexing
-                        if (nextWaypoint && nextWaypoint.floor !== undefined) {
-                            labelText += ` → Floor ${nextWaypoint.floor}`;
-                        }
-                    }
-                    
-                    console.log(`🏷️ LABEL: Step ${currentStep}/${totalSteps} - Floor ${waypointInfo.floor} - Label: "${labelText}"`);
+                // Get previous waypoint (for current progress display)
+                let prevWaypoint = null;
+                if (currentIndex > 0) {
+                    prevWaypoint = currentPath[currentIndex - 1];
                 }
                 
-                console.log(`Floor Label: ${labelText}`);
+                // Get current waypoint
+                const currentWaypoint = currentPath[currentIndex];
                 
-                floorLabel.textContent = labelText;
+                // Get next waypoint
+                let nextWaypoint = null;
+                if (currentIndex + 1 < currentPath.length) {
+                    nextWaypoint = currentPath[currentIndex + 1];
+                }
                 
-                // Remove all classes first
+                // Get next+1 waypoint (what happens after next)
+                let nextNextWaypoint = null;
+                if (currentIndex + 2 < currentPath.length) {
+                    nextNextWaypoint = currentPath[currentIndex + 2];
+                }
+                
+                // Get floors for waypoints (using waypoint.floor if available, otherwise location floor)
+                const prevFloor = getWaypointFloor(prevWaypoint);
+                const currentFloor = getWaypointFloor(currentWaypoint);
+                const nextFloor = getWaypointFloor(nextWaypoint);
+                
+                // LEFT LABEL: Current floor only
+                let currentText = '';
+                if (currentFloor !== undefined) {
+                    currentText = `Floor ${currentFloor}`;
+                } else {
+                    currentText = '';
+                }
+                
+                floorLabel.textContent = currentText;
+                
+                // Remove all classes first - always keep current label blue
                 floorLabel.classList.remove('stair', 'area');
                 
-                // Add appropriate class
-                if (labelClass) {
-                    floorLabel.classList.add(labelClass);
-                }
-                
-                // Show the label
+                // Always show the label when walking
                 floorLabel.classList.add('visible');
+                
+                // RIGHT LABEL: Only show "Go Left", "Go Right", or "Forward"
+                if (isSkippingStairs) {
+                    directionLabel.textContent = '';
+                    directionLabel.classList.remove('next-stair');
+                    directionLabel.classList.add('visible');
+                } else if (nextWaypoint && nextNextWaypoint) {
+                    // Calculate turn from next → nextNext
+                    const next = new THREE.Vector3(nextWaypoint.x, nextWaypoint.y, nextWaypoint.z);
+                    const nextNext = new THREE.Vector3(nextNextWaypoint.x, nextNextWaypoint.y, nextNextWaypoint.z);
+                    const current = new THREE.Vector3(currentWaypoint.x, currentWaypoint.y, currentWaypoint.z);
+                    
+                    const direction1 = new THREE.Vector3().subVectors(next, current).normalize();
+                    const direction2 = new THREE.Vector3().subVectors(nextNext, next).normalize();
+                    const cross = new THREE.Vector3().crossVectors(direction1, direction2);
+                    const turnThreshold = 0.15;
+                    
+                    let turnDir = null;
+                    if (Math.abs(cross.y) > turnThreshold) {
+                        turnDir = cross.y > 0 ? 'left' : 'right';
+                    }
+                    
+                    if (turnDir) {
+                        directionLabel.textContent = `Go ${turnDir.charAt(0).toUpperCase() + turnDir.slice(1)}`;
+                    } else {
+                        directionLabel.textContent = 'Forward';
+                    }
+                    directionLabel.classList.remove('next-stair');
+                    directionLabel.classList.add('visible');
+                } else if (nextWaypoint) {
+                    // Only next waypoint exists, no nextNext - check if we can determine direction
+                    if (currentIndex + 2 < currentPath.length) {
+                        // Try to calculate direction from current → next → next+1
+                        const current = new THREE.Vector3(currentWaypoint.x, currentWaypoint.y, currentWaypoint.z);
+                        const next = new THREE.Vector3(nextWaypoint.x, nextWaypoint.y, nextWaypoint.z);
+                        const nextNext = new THREE.Vector3(currentPath[currentIndex + 2].x, currentPath[currentIndex + 2].y, currentPath[currentIndex + 2].z);
+                        
+                        const direction1 = new THREE.Vector3().subVectors(next, current).normalize();
+                        const direction2 = new THREE.Vector3().subVectors(nextNext, next).normalize();
+                        const cross = new THREE.Vector3().crossVectors(direction1, direction2);
+                        const turnThreshold = 0.15;
+                        
+                        let turnDir = null;
+                        if (Math.abs(cross.y) > turnThreshold) {
+                            turnDir = cross.y > 0 ? 'left' : 'right';
+                        }
+                        
+                        if (turnDir) {
+                            directionLabel.textContent = `Go ${turnDir.charAt(0).toUpperCase() + turnDir.slice(1)}`;
+                        } else {
+                            directionLabel.textContent = 'Forward';
+                        }
+                    } else {
+                        // Last waypoint - say Forward
+                        directionLabel.textContent = 'Forward';
+                    }
+                    directionLabel.classList.remove('next-stair');
+                    directionLabel.classList.add('visible');
+                } else {
+                    // No next waypoint - say Forward
+                    directionLabel.textContent = 'Forward';
+                    directionLabel.classList.remove('next-stair');
+                    directionLabel.classList.add('visible');
+                }
+            } else {
+                // Only hide labels when not walking and person is not visible
+                if (!personModel || !personModel.visible) {
+                    floorLabel.classList.remove('visible');
+                    directionLabel.classList.remove('visible');
+                }
+                isSkippingStairs = false;
             }
         }
         
@@ -1515,7 +1757,7 @@
             // Button events
             document.getElementById('start-path').addEventListener('click', startPath);
             document.getElementById('pause-play-btn').addEventListener('click', togglePausePlay);
-            document.getElementById('skip-floor-btn').addEventListener('click', skipCurrentFloor);
+            // document.getElementById('skip-floor-btn').addEventListener('click', skipCurrentFloor);
             
             // Speed control events
             const speedSlider = document.getElementById('speed-slider');
@@ -2238,6 +2480,8 @@
                 isPaused = false;
                 walkingProgress = 0;
                 lastStairEntryIndex = -1; // Reset stair tracking for new path
+                isSkippingStairs = false; // Reset skipping flag
+                lastFrameTime = null; // Reset frame time tracking for accurate delta calculation
                 
                 // Show pause button
                 const pausePlayBtn = document.getElementById('pause-play-btn');
@@ -2248,9 +2492,9 @@
                 
                 // Show skip button if path has multiple floors
                 const skipBtn = document.getElementById('skip-floor-btn');
-                if (skipBtn && pathSegments.length > 1) {
-                    skipBtn.style.display = 'block';
-                }
+                // if (skipBtn && pathSegments.length > 1) {
+                //     skipBtn.style.display = 'block';
+                // }
                 
                 // Start walking animation
                 if (personWalkAction) {
@@ -2317,10 +2561,10 @@
             }
             
             // Hide skip button
-            const skipBtn = document.getElementById('skip-floor-btn');
-            if (skipBtn) {
-                skipBtn.style.display = 'none';
-            }
+            // const skipBtn = document.getElementById('skip-floor-btn');
+            // if (skipBtn) {
+            //     skipBtn.style.display = 'none';
+            // }
             
             // Stop walking animation
             if (personWalkAction) {
@@ -2343,10 +2587,14 @@
             // Clear arrival message if it exists
             hideArrivalMessage();
             
-            // Hide floor label
+            // Hide floor label and direction label
             const floorLabel = document.getElementById('floor-label');
+            const directionLabel = document.getElementById('direction-label');
             if (floorLabel) {
                 floorLabel.classList.remove('visible');
+            }
+            if (directionLabel) {
+                directionLabel.classList.remove('visible');
             }
             
             personModel.visible = false;
@@ -2640,7 +2888,15 @@ if (urlIndex >= modelUrls.length) {
         function animate() {
             requestAnimationFrame(animate);
             
-            const delta = 0.0167; // Approximate 60fps
+            // Calculate actual delta time for consistent speed across all frame rates
+            const currentTime = performance.now();
+            let delta = 0.0167; // Default to ~60fps if first frame
+            if (lastFrameTime !== null) {
+                delta = (currentTime - lastFrameTime) / 1000; // Convert milliseconds to seconds
+                // Cap delta to prevent large jumps (e.g., when tab is inactive)
+                delta = Math.min(delta, 0.1); // Cap at 100ms (10fps minimum)
+            }
+            lastFrameTime = currentTime;
             
             // Update animation mixer if it exists and not paused
             if (personMixer && !isPaused) {
@@ -2652,8 +2908,8 @@ if (urlIndex >= modelUrls.length) {
             
             // Animate person walking
             if (isWalking && !isPaused && currentPath && currentPath.length > 1) {
-                // Calculate constant speed based on time, not path length
-                // This ensures consistent movement speed regardless of path length
+                // Calculate constant speed based on actual time delta
+                // This ensures consistent movement speed regardless of frame rate or path length
                 const baseSpeedPerSecond = 0.5; // Base speed: 0.5 units per second
                 const speedPerFrame = (baseSpeedPerSecond * delta) * walkingSpeed; // Apply speed multiplier
                 
@@ -2666,9 +2922,51 @@ if (urlIndex >= modelUrls.length) {
                 // Continue walking animation
                 if (currentPath && currentPath.length > 0) {
                     const totalLength = currentPath.length - 1;
-                    const scaledProgress = walkingProgress * totalLength;
-                    const index = Math.floor(scaledProgress);
-                    const fraction = scaledProgress - index;
+                    let scaledProgress = walkingProgress * totalLength;
+                    let index = Math.floor(scaledProgress);
+                    let fraction = scaledProgress - index;
+                    
+                    // Auto-skip stair waypoints
+                    // Check if we're at or entering a stair waypoint
+                    if (index < currentPath.length) {
+                        const waypoint = currentPath[index];
+                        if (waypoint && waypoint.isStair === true) {
+                            // Check if we just entered this stair waypoint (to avoid skipping multiple times)
+                            if (lastStairEntryIndex !== index) {
+                                lastStairEntryIndex = index;
+                                
+                                // Find the next non-stair waypoint or next waypoint
+                                let nextIndex = index + 1;
+                                while (nextIndex < currentPath.length && currentPath[nextIndex] && currentPath[nextIndex].isStair === true) {
+                                    nextIndex++;
+                                }
+                                
+                                // If there's a next waypoint, skip to it
+                                if (nextIndex < currentPath.length) {
+                                    // Set skipping flag to show "Skipping" label
+                                    isSkippingStairs = true;
+                                    
+                                    // Calculate progress to skip to the start of next waypoint
+                                    walkingProgress = nextIndex / totalLength;
+                                    console.log(`🚶 Auto-skipped stair waypoint ${index}, jumping to waypoint ${nextIndex}`);
+                                    // Recalculate index and fraction after skip
+                                    scaledProgress = walkingProgress * totalLength;
+                                    index = Math.floor(scaledProgress);
+                                    fraction = scaledProgress - index;
+                                    
+                                    // Clear skipping flag after a short delay
+                                    setTimeout(() => {
+                                        isSkippingStairs = false;
+                                    }, 500);
+                                }
+                            }
+                        } else {
+                            // If we're not at a stair waypoint, clear the skipping flag
+                            if (isSkippingStairs && lastStairEntryIndex !== -1) {
+                                isSkippingStairs = false;
+                            }
+                        }
+                    }
             
                     if (index < currentPath.length - 1) {
                         // Handle enhanced waypoint structure - extract coordinates
@@ -2703,10 +3001,10 @@ if (urlIndex >= modelUrls.length) {
                     }
                     
                     // Hide skip button
-                    const skipBtn = document.getElementById('skip-floor-btn');
-                    if (skipBtn) {
-                        skipBtn.style.display = 'none';
-                    }
+                    // const skipBtn = document.getElementById('skip-floor-btn');
+                    // if (skipBtn) {
+                    //     skipBtn.style.display = 'none';
+                    // }
                     
                     // Stop walking animation when destination is reached
                     if (personWalkAction) {

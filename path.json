@@ -6,6 +6,7 @@
         "x": -14.8053,
         "y": 0.4952,
         "z": 0.9542,
+        "floor": 1,
         "person": {
             "position": {
                 "x": -14.8053,
@@ -32,6 +33,7 @@
         }
     },
     "faculty": {
+        "floor": 1,
         "x": -14.4534,
         "y": 0.4952,
         "z": 0.9619,
@@ -61,6 +63,7 @@
         }
     },
     "room308": {
+        "floor": 3,
         "x": -17.6359,
         "y": 1.0101,
         "z": 0.9326,
@@ -90,6 +93,7 @@
         }
     },
    "room309": {
+        "floor": 3,
         "x": -18.5075,
         "y": 1.0101,
         "z": 0.9331,
@@ -119,6 +123,7 @@
         }
     },
     "room307": {
+        "floor": 3,
         "x": -17.1265,
         "y": 1.0101,
         "z": 0.9507,
@@ -148,6 +153,7 @@
         }
     },
     "room306": {
+      "floor": 3,
         "x": -16.6502,
         "y": 1.0101,
         "z": 0.9139,
@@ -177,6 +183,7 @@
         }
     },
     "room305": {
+      "floor": 3,
         "x": -16.1582,
         "y": 1.0101,
         "z": 0.9212,
@@ -206,6 +213,7 @@
         }
     },
     "room304": {
+      "floor": 3,
         "x": -14.8016,
         "y": 1.0101,
         "z": 0.9416,
@@ -235,6 +243,7 @@
         }
     },
     "room303": {
+      "floor": 3,
         "x": -14.1158,
         "y": 1.0101,
         "z": 0.9214,
@@ -264,6 +273,7 @@
         }
     },
     "room302": {
+      "floor": 3,
         "x": -13.3319,
         "y": 1.0101,
         "z": 0.9016,
@@ -293,6 +303,7 @@
         }
     },
     "room301": {
+      "floor": 3,
         "x": -12.6405,
         "y": 1.0101,
         "z": 0.9032,
@@ -322,6 +333,7 @@
         }
     },
    "multimedia": {
+        "floor": 2,
         "x": -17.2601,
         "y": 0.7638,
         "z": 0.9262,
@@ -351,6 +363,7 @@
         }
     },
     "lab1": {
+      "floor": 2,
         "x": -12.6422,
         "y": 0.7638,
         "z": 0.9116,
@@ -380,6 +393,7 @@
         }
     },
     "lab2": {
+      "floor": 2,
       "x": -13.6283,
       "y": 0.7638,
       "z": 0.9514,
@@ -409,6 +423,7 @@
       }
   },
     "lab3": {
+      "floor": 2,
         "x": -16.5835,
         "y": 0.7638,
         "z": 0.9285,
@@ -456,6 +471,7 @@
         }
     },
     "tenniscourt": {
+      "floor": 1,
         "x": -13.8271,
         "y": 0.4738,
         "z": 0.4797,
@@ -518,6 +534,7 @@
         "x": -10.542,
         "y": 0.4869,
         "z": 2.7407,
+        "floor": 1,
         "person": {
             "position": {
                 "x": -10.542,
@@ -547,6 +564,7 @@
       "x": -15.9731,
       "y": 0.4869,
       "z": 1.7094,
+      "floor": 1,
       "person": {
           "position": {
               "x": -15.9731,
@@ -5847,57 +5865,6 @@
       ],
       "lookout": null
     },
-
-    "room309_lab1": {
-      "path": [
-        {
-          "x": -18.4974,
-          "y": 1.0101,
-          "z": 0.8087
-        },
-        {
-          "x": -15.7119,
-          "y": 1.0101,
-          "z": 0.8544
-        },
-        {
-          "x": -15.7159,
-          "y": 1.0101,
-          "z": 0.9031
-        },
-        {
-          "x": -15.72,
-          "y": 0.8929,
-          "z": 1.2917
-        },
-        {
-          "x": -15.6753,
-          "y": 0.8929,
-          "z": 1.3219
-        },
-        {
-          "x": -15.5785,
-          "y": 0.8929,
-          "z": 1.313
-        },
-        {
-          "x": -15.6011,
-          "y": 0.7638,
-          "z": 0.911
-        },
-        {
-          "x": -15.3774,
-          "y": 0.7638,
-          "z": 0.7832
-        },
-        {
-          "x": -12.6496,
-          "y": 0.7638,
-          "z": 0.8527
-        }
-      ],
-      "lookout": null
-    },
     "lab1_room309": {
       "path": [
         {
@@ -6934,41 +6901,6 @@
           "x": -10.6025,
           "y": 0.4869,
           "z": 2.8253
-        }
-      ],
-      "lookout": null
-    },
-    "room308_lab1": {
-      "path": [
-        {
-          "x": -18.5083,
-          "y": 1.0101,
-          "z": 0.7781
-        },
-        {
-          "x": -15.7152,
-          "y": 1.0101,
-          "z": 0.8265
-        },
-        {
-          "x": -15.7017,
-          "y": 0.8929,
-          "z": 1.3174
-        },
-        {
-          "x": -15.5909,
-          "y": 0.8929,
-          "z": 1.3138
-        },
-        {
-          "x": -15.5928,
-          "y": 0.7638,
-          "z": 0.8666
-        },
-        {
-          "x": -12.6057,
-          "y": 0.7638,
-          "z": 0.861
         }
       ],
       "lookout": null
@@ -8013,41 +7945,6 @@
       ],
       "lookout": null
     },
-    "room307_lab1": {
-      "path": [
-        {
-          "x": -17.0987,
-          "y": 1.0101,
-          "z": 0.815
-        },
-        {
-          "x": -15.7143,
-          "y": 1.0101,
-          "z": 0.85
-        },
-        {
-          "x": -15.7312,
-          "y": 0.8929,
-          "z": 1.296
-        },
-        {
-          "x": -15.5987,
-          "y": 0.8929,
-          "z": 1.3114
-        },
-        {
-          "x": -15.5676,
-          "y": 0.7638,
-          "z": 0.8649
-        },
-        {
-          "x": -12.661,
-          "y": 0.7638,
-          "z": 0.8419
-        }
-      ],
-      "lookout": null
-    },
     "room307_lab2": {
       "path": [
         {
@@ -9049,41 +8946,6 @@
           "x": -17.2213,
           "y": 0.7638,
           "z": 0.8291
-        }
-      ],
-      "lookout": null
-    },
-    "room306_lab1": {
-      "path": [
-        {
-          "x": -16.6761,
-          "y": 1.0101,
-          "z": 0.8373
-        },
-        {
-          "x": -15.7127,
-          "y": 1.0101,
-          "z": 0.8601
-        },
-        {
-          "x": -15.7093,
-          "y": 0.8929,
-          "z": 1.2969
-        },
-        {
-          "x": -15.6005,
-          "y": 0.8929,
-          "z": 1.3011
-        },
-        {
-          "x": -15.5806,
-          "y": 0.7638,
-          "z": 0.852
-        },
-        {
-          "x": -12.6428,
-          "y": 0.7638,
-          "z": 0.8311
         }
       ],
       "lookout": null
@@ -10275,7 +10137,7 @@
           "y": 1.0101,
           "z": 0.8166,
           "floor": 3,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -10321,7 +10183,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -10377,7 +10239,7 @@
           "y": 1.0101,
           "z": 0.8166,
           "floor": 3,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -10423,7 +10285,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -10479,7 +10341,7 @@
           "y": 1.0101,
           "z": 0.8166,
           "floor": 3,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -10525,7 +10387,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -10592,7 +10454,7 @@
           "y": 1.0101,
           "z": 0.8166,
           "floor": 3,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -10638,7 +10500,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -10705,7 +10567,7 @@
           "y": 1.0101,
           "z": 0.8166,
           "floor": 3,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -10751,7 +10613,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -10818,7 +10680,7 @@
           "y": 1.0101,
           "z": 0.8166,
           "floor": 3,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -10864,7 +10726,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -10931,7 +10793,7 @@
           "y": 1.0101,
           "z": 0.8166,
           "floor": 3,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -10977,7 +10839,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -11094,7 +10956,7 @@
           "y": 1.0101,
           "z": 0.8166,
           "floor": 3,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -11140,7 +11002,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -11261,7 +11123,7 @@
           "y": 1.0101,
           "z": 0.8166,
           "floor": 3,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -11307,7 +11169,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -11428,7 +11290,7 @@
           "y": 1.0101,
           "z": 0.8166,
           "floor": 3,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -11474,7 +11336,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -11594,7 +11456,7 @@
           "y": 1.0101,
           "z": 0.8166,
           "floor": 3,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -11640,7 +11502,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -11757,7 +11619,7 @@
           "y": 1.0101,
           "z": 0.8166,
           "floor": 3,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -11803,7 +11665,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -12193,61 +12055,6 @@
           "x": -14.8096,
           "y": 0.4952,
           "z": 0.8323
-        }
-      ],
-      "lookout": null
-    },
-    "room304_faculty": {
-      "path": [
-        {
-          "x": -14.8002,
-          "y": 1.0101,
-          "z": 0.8394
-        },
-        {
-          "x": -15.7057,
-          "y": 1.0101,
-          "z": 0.8466
-        },
-        {
-          "x": -15.7075,
-          "y": 0.8929,
-          "z": 1.3018
-        },
-        {
-          "x": -15.6022,
-          "y": 0.8929,
-          "z": 1.3273
-        },
-        {
-          "x": -15.556,
-          "y": 0.7638,
-          "z": 0.8235
-        },
-        {
-          "x": -15.7265,
-          "y": 0.7638,
-          "z": 0.8434
-        },
-        {
-          "x": -15.7289,
-          "y": 0.6227,
-          "z": 1.3068
-        },
-        {
-          "x": -15.5885,
-          "y": 0.6227,
-          "z": 1.3286
-        },
-        {
-          "x": -15.5886,
-          "y": 0.4952,
-          "z": 0.8127
-        },
-        {
-          "x": -14.4723,
-          "y": 0.4952,
-          "z": 0.8165
         }
       ],
       "lookout": null
@@ -13238,61 +13045,6 @@
       ],
       "lookout": null
     },
-    "room303_faculty": {
-      "path": [
-        {
-          "x": -14.1328,
-          "y": 1.0101,
-          "z": 0.8175
-        },
-        {
-          "x": -15.7421,
-          "y": 1.0101,
-          "z": 0.8447
-        },
-        {
-          "x": -15.7297,
-          "y": 0.8929,
-          "z": 1.3072
-        },
-        {
-          "x": -15.5762,
-          "y": 0.8929,
-          "z": 1.34
-        },
-        {
-          "x": -15.5947,
-          "y": 0.7638,
-          "z": 0.8527
-        },
-        {
-          "x": -15.7163,
-          "y": 0.7638,
-          "z": 0.8642
-        },
-        {
-          "x": -15.731,
-          "y": 0.6227,
-          "z": 1.2815
-        },
-        {
-          "x": -15.5792,
-          "y": 0.6227,
-          "z": 1.3057
-        },
-        {
-          "x": -15.5634,
-          "y": 0.4952,
-          "z": 0.8195
-        },
-        {
-          "x": -14.4847,
-          "y": 0.4935,
-          "z": 0.8292
-        }
-      ],
-      "lookout": null
-    },
     "room303_tenniscourt": {
       "path": [
         {
@@ -14279,61 +14031,6 @@
       ],
       "lookout": null
     },
-    "room302_faculty": {
-      "path": [
-        {
-          "x": -13.3598,
-          "y": 1.0101,
-          "z": 0.8323
-        },
-        {
-          "x": -15.729,
-          "y": 1.0101,
-          "z": 0.8162
-        },
-        {
-          "x": -15.713,
-          "y": 0.8929,
-          "z": 1.2975
-        },
-        {
-          "x": -15.5899,
-          "y": 0.8929,
-          "z": 1.31
-        },
-        {
-          "x": -15.5757,
-          "y": 0.7638,
-          "z": 0.8507
-        },
-        {
-          "x": -15.7245,
-          "y": 0.7638,
-          "z": 0.8199
-        },
-        {
-          "x": -15.7326,
-          "y": 0.6227,
-          "z": 1.2576
-        },
-        {
-          "x": -15.5855,
-          "y": 0.6227,
-          "z": 1.2746
-        },
-        {
-          "x": -15.583,
-          "y": 0.4952,
-          "z": 0.8212
-        },
-        {
-          "x": -14.4658,
-          "y": 0.4952,
-          "z": 0.8432
-        }
-      ],
-      "lookout": null
-    },
     "room302_tenniscourt": {
       "path": [
         {
@@ -15034,42 +14731,6 @@
       ],
       "lookout": null
     },
-
-    "room301_lab1": {
-      "path": [
-        {
-          "x": -12.6502,
-          "y": 1.0101,
-          "z": 0.8257
-        },
-        {
-          "x": -12.274,
-          "y": 1.0101,
-          "z": 0.7887
-        },
-        {
-          "x": -12.2593,
-          "y": 0.8574,
-          "z": 1.3361
-        },
-        {
-          "x": -12.1102,
-          "y": 0.8574,
-          "z": 1.3311
-        },
-        {
-          "x": -12.0962,
-          "y": 0.7638,
-          "z": 0.8158
-        },
-        {
-          "x": -12.6232,
-          "y": 0.7638,
-          "z": 0.8287
-        }
-      ],
-      "lookout": null
-    },
     "room301_lab2": {
       "path": [
         {
@@ -15376,61 +15037,6 @@
           "x": -14.8135,
           "y": 0.4952,
           "z": 0.8553
-        }
-      ],
-      "lookout": null
-    },
-    "room301_faculty": {
-      "path": [
-        {
-          "x": -12.634,
-          "y": 1.0101,
-          "z": 0.8549
-        },
-        {
-          "x": -15.7377,
-          "y": 1.0101,
-          "z": 0.8637
-        },
-        {
-          "x": -15.7305,
-          "y": 0.8929,
-          "z": 1.2842
-        },
-        {
-          "x": -15.5903,
-          "y": 0.8929,
-          "z": 1.3101
-        },
-        {
-          "x": -15.5682,
-          "y": 0.7638,
-          "z": 0.8392
-        },
-        {
-          "x": -15.7129,
-          "y": 0.7638,
-          "z": 0.8368
-        },
-        {
-          "x": -15.724,
-          "y": 0.6227,
-          "z": 1.28
-        },
-        {
-          "x": -15.5807,
-          "y": 0.6227,
-          "z": 1.3057
-        },
-        {
-          "x": -15.5695,
-          "y": 0.4952,
-          "z": 0.8275
-        },
-        {
-          "x": -14.4732,
-          "y": 0.4952,
-          "z": 0.8756
         }
       ],
       "lookout": null
@@ -16244,7 +15850,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -16330,7 +15936,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -16443,7 +16049,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -16529,7 +16135,7 @@
           "y": 0.7638,
           "z": 0.8609,
           "floor": 2,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -16537,7 +16143,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -16556,7 +16162,7 @@
           "y": 0.8929,
           "z": 1.3216,
           "floor": 3,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5803,
@@ -16631,7 +16237,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -16725,7 +16331,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -16809,7 +16415,7 @@
           "y": 0.4952,
           "z": 0.8109,
           "floor": 1,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -16874,7 +16480,7 @@
           "y": 0.7638,
           "z": 0.9458,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": null
         },
         {
@@ -16882,7 +16488,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -16968,7 +16574,7 @@
           "y": 0.4952,
           "z": 0.8109,
           "floor": 1,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -17033,7 +16639,7 @@
           "y": 0.7638,
           "z": 0.9458,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": null
         },
         {
@@ -17041,7 +16647,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -17127,7 +16733,7 @@
           "y": 0.4952,
           "z": 0.8109,
           "floor": 1,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -17192,7 +16798,7 @@
           "y": 0.7638,
           "z": 0.9458,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": null
         },
         {
@@ -17200,7 +16806,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -17285,7 +16891,7 @@
           "y": 0.4952,
           "z": 0.8109,
           "floor": 1,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -17350,7 +16956,7 @@
           "y": 0.7638,
           "z": 0.9458,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": null
         },
         {
@@ -17358,7 +16964,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -17448,7 +17054,7 @@
           "y": 0.4952,
           "z": 0.8109,
           "floor": 1,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -17513,7 +17119,7 @@
           "y": 0.7638,
           "z": 0.9458,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": null
         },
         {
@@ -17521,7 +17127,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -17612,7 +17218,7 @@
           "y": 0.4952,
           "z": 0.8109,
           "floor": 1,
-          "isStair": false,
+          "isStair": true,
           "camera": null
         },
         {
@@ -17677,7 +17283,7 @@
           "y": 0.7638,
           "z": 0.9458,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": null
         },
         {
@@ -17685,7 +17291,7 @@
           "y": 0.7638,
           "z": 0.9487,
           "floor": 2,
-          "isStair": true,
+          "isStair": false,
           "camera": {
             "position": {
               "x": -15.5023,
@@ -17808,6 +17414,635 @@
           "y": 1.0101,
           "z": 0.9358,
           "floor": 3,
+          "isStair": false,
+          "camera": null
+        }
+      ],
+      "lookout": null
+    },
+    "room301_lab1": {
+      "path": [
+        {
+          "x": -12.617,
+          "y": 1.0101,
+          "z": 0.8266,
+          "floor": 3,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -15.6737,
+          "y": 1.0101,
+          "z": 0.7996,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.6778,
+          "y": 0.8929,
+          "z": 1.2855,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.6107,
+          "y": 0.8929,
+          "z": 1.2754,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5959,
+          "y": 0.7638,
+          "z": 0.832,
+          "floor": 3,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -12.635,
+          "y": 0.7638,
+          "z": 0.8406,
+          "floor": 3,
+          "isStair": false,
+          "camera": null
+        }
+      ],
+      "lookout": null
+    },
+    "room306_lab1": {
+      "path": [
+        {
+          "x": -16.6353,
+          "y": 1.0101,
+          "z": 0.8008,
+          "floor": 3,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -15.6949,
+          "y": 1.0101,
+          "z": 0.7965,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.6994,
+          "y": 0.8929,
+          "z": 1.3077,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.6058,
+          "y": 0.8929,
+          "z": 1.3172,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5916,
+          "y": 0.7638,
+          "z": 0.8475,
+          "floor": 2,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -12.6326,
+          "y": 0.7638,
+          "z": 0.8224,
+          "floor": 2,
+          "isStair": false,
+          "camera": null
+        }
+      ],
+      "lookout": null
+    },
+    "room307_lab1": {
+      "path": [
+        {
+          "x": -17.1107,
+          "y": 1.0101,
+          "z": 0.8125,
+          "floor": 3,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -15.7225,
+          "y": 1.0101,
+          "z": 0.826,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.6997,
+          "y": 0.8929,
+          "z": 1.2696,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5796,
+          "y": 0.8929,
+          "z": 1.2591,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.6179,
+          "y": 0.7638,
+          "z": 0.8756,
+          "floor": 2,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -12.6144,
+          "y": 0.7638,
+          "z": 0.8212,
+          "floor": 2,
+          "isStair": false,
+          "camera": null
+        }
+      ],
+      "lookout": null
+    },
+    "room308_lab1": {
+      "path": [
+        {
+          "x": -17.6168,
+          "y": 1.0101,
+          "z": 0.8449,
+          "floor": 3,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -15.7175,
+          "y": 1.0101,
+          "z": 0.8726,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.7179,
+          "y": 0.8929,
+          "z": 1.3367,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5918,
+          "y": 0.8929,
+          "z": 1.3171,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5946,
+          "y": 0.7638,
+          "z": 0.8366,
+          "floor": 2,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -12.6374,
+          "y": 0.7638,
+          "z": 0.8641,
+          "floor": 2,
+          "isStair": false,
+          "camera": null
+        }
+      ],
+      "lookout": null
+    },
+    "room309_lab1": {
+      "path": [
+        {
+          "x": -18.4889,
+          "y": 1.0101,
+          "z": 0.7883,
+          "floor": 3,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -15.7259,
+          "y": 1.0101,
+          "z": 0.8304,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.7079,
+          "y": 0.8929,
+          "z": 1.2894,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5971,
+          "y": 0.8929,
+          "z": 1.2946,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5887,
+          "y": 0.7638,
+          "z": 0.8687,
+          "floor": 2,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -12.6261,
+          "y": 0.7638,
+          "z": 0.8076,
+          "floor": 2,
+          "isStair": false,
+          "camera": null
+        }
+      ],
+      "lookout": null
+    },
+    "room302_faculty": {
+      "path": [
+        {
+          "x": -13.3207,
+          "y": 1.0101,
+          "z": 0.8007,
+          "floor": 3,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -15.7238,
+          "y": 1.0101,
+          "z": 0.7991,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.7148,
+          "y": 0.8929,
+          "z": 1.2956,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5774,
+          "y": 0.8929,
+          "z": 1.2999,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5706,
+          "y": 0.7638,
+          "z": 0.8079,
+          "floor": 2,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -15.7383,
+          "y": 0.7638,
+          "z": 0.8066,
+          "floor": 2,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.6929,
+          "y": 0.6227,
+          "z": 1.275,
+          "floor": 2,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.594,
+          "y": 0.6227,
+          "z": 1.2814,
+          "floor": 2,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5818,
+          "y": 0.4952,
+          "z": 0.8511,
+          "floor": 1,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -14.4346,
+          "y": 0.4952,
+          "z": 0.8343,
+          "floor": 1,
+          "isStair": false,
+          "camera": null
+        }
+      ],
+      "lookout": null
+    },
+    "room301_faculty": {
+      "path": [
+        {
+          "x": -12.6551,
+          "y": 1.0101,
+          "z": 0.7924,
+          "floor": 3,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -15.7214,
+          "y": 1.0101,
+          "z": 0.7969,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.7106,
+          "y": 0.8929,
+          "z": 1.2887,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.6041,
+          "y": 0.8929,
+          "z": 1.312,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5772,
+          "y": 0.7638,
+          "z": 0.8287,
+          "floor": 2,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -15.7378,
+          "y": 0.7638,
+          "z": 0.8228,
+          "floor": 2,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.7168,
+          "y": 0.7638,
+          "z": 0.9516,
+          "floor": 2,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.6936,
+          "y": 0.6227,
+          "z": 1.3364,
+          "floor": 2,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5992,
+          "y": 0.6227,
+          "z": 1.3356,
+          "floor": 2,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.6062,
+          "y": 0.4952,
+          "z": 0.874,
+          "floor": 1,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -14.4122,
+          "y": 0.4952,
+          "z": 0.8313,
+          "floor": 1,
+          "isStair": false,
+          "camera": null
+        }
+      ],
+      "lookout": null
+    },
+    "room303_faculty": {
+      "path": [
+        {
+          "x": -14.114,
+          "y": 1.0101,
+          "z": 0.8179,
+          "floor": 3,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -15.7228,
+          "y": 1.0101,
+          "z": 0.7974,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.7287,
+          "y": 1.0101,
+          "z": 0.9488,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.7064,
+          "y": 0.8929,
+          "z": 1.318,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.585,
+          "y": 0.8929,
+          "z": 1.3179,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5628,
+          "y": 0.7638,
+          "z": 0.8218,
+          "floor": 2,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -15.6882,
+          "y": 0.7638,
+          "z": 0.8178,
+          "floor": 2,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.7149,
+          "y": 0.6227,
+          "z": 1.2928,
+          "floor": 2,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.6023,
+          "y": 0.6227,
+          "z": 1.3013,
+          "floor": 2,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5833,
+          "y": 0.4952,
+          "z": 0.8482,
+          "floor": 1,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -14.455,
+          "y": 0.4952,
+          "z": 0.8375,
+          "floor": 1,
+          "isStair": false,
+          "camera": null
+        }
+      ],
+      "lookout": null
+    },
+    "room304_faculty": {
+      "path": [
+        {
+          "x": -14.7965,
+          "y": 1.0101,
+          "z": 0.7729,
+          "floor": 3,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -15.702,
+          "y": 1.0101,
+          "z": 0.771,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.7059,
+          "y": 1.0101,
+          "z": 0.9471,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.7123,
+          "y": 0.8929,
+          "z": 1.3152,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5858,
+          "y": 0.8929,
+          "z": 1.3236,
+          "floor": 3,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5772,
+          "y": 0.7638,
+          "z": 0.8582,
+          "floor": 2,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -15.7498,
+          "y": 0.7638,
+          "z": 0.837,
+          "floor": 2,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.6878,
+          "y": 0.6227,
+          "z": 1.2826,
+          "floor": 2,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5948,
+          "y": 0.6227,
+          "z": 1.2706,
+          "floor": 2,
+          "isStair": true,
+          "camera": null
+        },
+        {
+          "x": -15.5939,
+          "y": 0.4952,
+          "z": 0.8095,
+          "floor": 1,
+          "isStair": false,
+          "camera": null
+        },
+        {
+          "x": -14.4461,
+          "y": 0.4952,
+          "z": 0.7992,
+          "floor": 1,
           "isStair": false,
           "camera": null
         }
