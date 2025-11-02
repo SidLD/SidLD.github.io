@@ -489,6 +489,9 @@
             white-space: nowrap; /* Keep text on one line */
             overflow: hidden; /* Hide overflow */
             text-overflow: ellipsis; /* Show ... if text is too long */
+            display: flex;
+            align-items: center;
+            line-height: 1;
         }
 
         .floor-label.visible {
@@ -532,6 +535,10 @@
             overflow: hidden;
             text-overflow: ellipsis;
             text-align: right;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            line-height: 1;
         }
 
         .direction-label.visible {
@@ -614,12 +621,15 @@
             }
             
             .floor-label {
-                top: 170px; /* Position well below header on mobile */
+                top: 160px; /* Position after navigation bar, same as direction label */
                 left: 10px;
                 right: auto;
                 transform: translateY(-20px);
-                max-width: calc(100vw - 20px);
+                max-width: calc(50vw - 20px); /* Each label takes half width */
                 font-size: 0.8rem; /* Smaller font on mobile */
+                display: flex;
+                align-items: center;
+                line-height: 1;
             }
             
             .floor-label.visible {
@@ -627,13 +637,17 @@
             }
 
             .direction-label {
-                top: 220px; /* Position below floor label on mobile */
+                top: 160px; /* Same vertical position as floor label */
                 right: 10px;
                 left: auto;
                 transform: translateY(-20px);
-                max-width: calc(100vw - 20px);
+                max-width: calc(50vw - 20px); /* Each label takes half width */
                 font-size: 0.8rem;
                 text-align: right;
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                line-height: 1;
             }
 
             .direction-label.visible {
